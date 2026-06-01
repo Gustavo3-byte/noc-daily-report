@@ -142,6 +142,40 @@ app.get('/admin', (req, res) => {
 });
 
 // ============================================
+// Auto-seed: Criar tabelas e admin padrão
+// ============================================
+const fs = require('fs');
+const bcrypt = require('bcryptjs');
+
+async function autoSeed() {
+  try {
+    // 1. Executar schema.sql para criar tabelas
+    const schemaPath = path.join(__dirname, 'db', 'schema.sql');
+    const schemaSql = fs.readFileSync(schemaPath, 'utf-8');
+    await pool.query(schemaSql);
+    console.log('✅ Tabelas verificadas/criadas com sucesso.');
+
+    // 2. Criar admin padrão se não existir nenhum usuário
+    const result = await pool.query('SELECT COUNT(*) FROM users');
+    const userCount = parseInt(result.rows[0].count, 10);
+
+    if (userCount === 0) {
+      const passwordHash = await bcrypt.hash('admin123', 10);
+      await pool.query(
+        `INSERT INTO users (username, password_hash, full_name, role)
+         VALUES ($1, $2, $3, $4)`,
+        ['admin', passwordHash, 'Administrador', 'admin']
+      );
+      console.log('✅ Usuário admin padrão criado (admin / admin123).');
+    } else {
+      console.log(`ℹ️  ${userCount} usuário(s) encontrado(s). Seed ignorado.`);
+    }
+  } catch (error) {
+    console.error('❌ Erro no auto-seed:', error.message);
+  }
+}
+
+// ============================================
 // Inicialização do servidor
 // ============================================
 app.listen(PORT, async () => {
@@ -155,6 +189,7 @@ app.listen(PORT, async () => {
   console.log('');
 
   await testConnection();
+  await autoSeed();
 
   console.log('');
   console.log('🚀 Servidor pronto para receber requisições.');
