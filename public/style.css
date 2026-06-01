@@ -1409,9 +1409,11 @@ button {
 /* Container temporário para renderização do PDF (fora da tela) */
 .pdf-render-container {
     position: fixed;
-    left: -9999px;
+    left: 0;
     top: 0;
     width: 210mm;
-    z-index: -1;
-    background: #ffffff;
+    z-index: -9999;
+    opacity: 0;
+    pointer-events: none;
+    background: #040814;
 }
