@@ -703,19 +703,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 pdfDoc2.text('NOC Operational Report', 6, mTop2 - 4);
                 pdfDoc2.text(dateClean, pageW2 - 6, mTop2 - 4, { align: 'right' });
 
-                const fy2 = pageH2 - mBot2;
-                pdfDoc2.setFillColor(4, 8, 20);
-                pdfDoc2.rect(0, fy2, pageW2, mBot2, 'F');
-                pdfDoc2.setDrawColor(226, 232, 240);
-                pdfDoc2.setLineWidth(0.3);
-                pdfDoc2.line(6, fy2 + 2, pageW2 - 6, fy2 + 2);
-                pdfDoc2.setFontSize(8);
-                pdfDoc2.setTextColor(100, 116, 139);
-                pdfDoc2.text(`Página ${p2 + 1} de ${totalPages2}`, pageW2 / 2, fy2 + 9, { align: 'center' });
-                pdfDoc2.setFontSize(6.5);
-                pdfDoc2.setTextColor(148, 163, 184);
-                pdfDoc2.text(`Gerado em ${generationTimestamp}`, pageW2 - 6, fy2 + 15, { align: 'right' });
-                pdfDoc2.text('DOCUMENTO INTERNO — NOC Report System', 6, fy2 + 15);
+                // Rodapé removido — sem faixa, número de página ou créditos.
+                // A arte de fundo aparece inteira até a base da página.
             }
 
             pdfDoc2.save(filename);
@@ -1229,20 +1218,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 pdfDoc.text('NOC Operational Report', 6, marginTop - 4);
                 pdfDoc.text(dateClean, pageW - 6, marginTop - 4, { align: 'right' });
 
-                // 4. Footer
-                const footerY = pageH - marginBot;
-                pdfDoc.setFillColor(4, 8, 20);
-                pdfDoc.rect(0, footerY, pageW, marginBot, 'F');
-                pdfDoc.setDrawColor(226, 232, 240);
-                pdfDoc.setLineWidth(0.3);
-                pdfDoc.line(6, footerY + 2, pageW - 6, footerY + 2);
-                pdfDoc.setFontSize(8);
-                pdfDoc.setTextColor(100, 116, 139);
-                pdfDoc.text(`Página ${p + 1} de ${totalPages}`, pageW / 2, footerY + 9, { align: 'center' });
-                pdfDoc.setFontSize(6.5);
-                pdfDoc.setTextColor(148, 163, 184);
-                pdfDoc.text(`Gerado em ${generationTimestamp}`, pageW - 6, footerY + 15, { align: 'right' });
-                pdfDoc.text('DOCUMENTO INTERNO — NOC Report System', 6, footerY + 15);
+                // 4. Rodapé removido — sem faixa, número de página ou créditos.
+                // A arte de fundo aparece inteira até a base da página.
             }
 
             pdfDoc.save(filename);
