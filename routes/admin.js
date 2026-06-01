@@ -160,8 +160,15 @@ router.post('/users', async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Erro ao criar usuário:', error.message);
+    // Violação de chave única (username já existe)
+    if (error.code === '23505') {
+      return res.status(409).json({
+        error: 'Este nome de usuário já está em uso (violação de chave única).',
+      });
+    }
+    // Outros erros de banco ou hashing
     return res.status(500).json({
-      error: 'Erro ao criar usuário.',
+      error: `Erro ao criar usuário: ${error.message}`,
     });
   }
 });
@@ -223,12 +230,12 @@ router.delete('/users/:id', async (req, res) => {
     return res.json({
       message: 'Usuário removido com sucesso.',
     });
-  } catch (error) {
-    console.error('❌ Erro ao remover usuário:', error.message);
-    return res.status(500).json({
-      error: 'Erro ao remover usuário.',
-    });
-  }
+    } catch (error) {
+      console.error('❌ Erro ao remover usuário:', error.message);
+      return res.status(500).json({
+        error: `Erro ao remover usuário: ${error.message}`,
+      });
+    }
 });
 
 module.exports = router;
