@@ -660,63 +660,62 @@ document.addEventListener('DOMContentLoaded', () => {
 
             document.body.removeChild(pdfContainer);
 
-            const imgData2 = canvas2.toDataURL('image/jpeg', 0.98);
-            const pdfDoc2 = new (window.jspdf ? window.jspdf.jsPDF : jsPDF)({
-                unit: 'mm', format: 'a4', orientation: 'portrait'
-            });
+            const jsPDFClass2 = window.jspdf ? window.jspdf.jsPDF : jsPDF;
+            const pdfDoc2 = new jsPDFClass2({ unit: 'mm', format: 'a4', orientation: 'portrait' });
 
-            const pageWidth2 = pdfDoc2.internal.pageSize.getWidth();
-            const pageHeight2 = pdfDoc2.internal.pageSize.getHeight();
-            const imgWidth2 = pageWidth2 - 20;
-            const imgHeight2 = (canvas2.height * imgWidth2) / canvas2.width;
-            const usableHeight2 = pageHeight2 - 42;
+            const pageW2 = pdfDoc2.internal.pageSize.getWidth();
+            const pageH2 = pdfDoc2.internal.pageSize.getHeight();
+            const mTop2 = 18, mBot2 = 20, usable2 = pageH2 - mTop2 - mBot2;
+            const scale2 = pageW2 / (canvas2.width / 2);
+            const totalH2 = (canvas2.height / 2) * scale2;
+            const totalPages2 = Math.ceil(totalH2 / usable2);
 
-            let yOffset2 = 0;
-            let pageNum2 = 0;
-            const totalPages2 = Math.ceil(imgHeight2 / usableHeight2);
+            for (let p2 = 0; p2 < totalPages2; p2++) {
+                if (p2 > 0) pdfDoc2.addPage();
 
-            while (yOffset2 < imgHeight2) {
-                if (pageNum2 > 0) pdfDoc2.addPage();
-                pageNum2++;
+                if (fundoBase64) {
+                    pdfDoc2.addImage(fundoBase64, 'PNG', 0, 0, pageW2, pageH2);
+                } else {
+                    pdfDoc2.setFillColor(4, 8, 20);
+                    pdfDoc2.rect(0, 0, pageW2, pageH2, 'F');
+                }
 
-                pdfDoc2.setDrawColor(10, 22, 40);
-                pdfDoc2.setLineWidth(0.6);
-                pdfDoc2.line(10, 14, pageWidth2 - 10, 14);
+                const srcY2mm = p2 * usable2;
+                const srcY2px = Math.round(srcY2mm / scale2 * 2);
+                const sliceH2mm = Math.min(usable2, totalH2 - srcY2mm);
+                const sliceH2px = Math.round(sliceH2mm / scale2 * 2);
+
+                if (sliceH2px > 0) {
+                    const sc2 = document.createElement('canvas');
+                    sc2.width = canvas2.width;
+                    sc2.height = sliceH2px;
+                    sc2.getContext('2d').drawImage(canvas2, 0, srcY2px, canvas2.width, sliceH2px, 0, 0, canvas2.width, sliceH2px);
+                    pdfDoc2.addImage(sc2.toDataURL('image/png'), 'PNG', 0, mTop2, pageW2, sliceH2mm);
+                }
+
+                pdfDoc2.setFillColor(4, 8, 20);
+                pdfDoc2.rect(0, 0, pageW2, mTop2, 'F');
+                pdfDoc2.setDrawColor(0, 242, 254);
+                pdfDoc2.setLineWidth(0.4);
+                pdfDoc2.line(0, mTop2, pageW2, mTop2);
                 pdfDoc2.setFontSize(7);
                 pdfDoc2.setTextColor(100, 116, 139);
-                pdfDoc2.text('NOC Operational Report', 10, 12);
-                pdfDoc2.text(dateClean, pageWidth2 - 10, 12, { align: 'right' });
+                pdfDoc2.text('NOC Operational Report', 6, mTop2 - 4);
+                pdfDoc2.text(dateClean, pageW2 - 6, mTop2 - 4, { align: 'right' });
 
-                const sliceCanvas2 = document.createElement('canvas');
-                sliceCanvas2.width = canvas2.width;
-                sliceCanvas2.height = Math.min(
-                    Math.ceil(usableHeight2 * canvas2.width / imgWidth2),
-                    canvas2.height - Math.ceil(yOffset2 * canvas2.width / imgWidth2)
-                );
-                const sliceCtx2 = sliceCanvas2.getContext('2d');
-                sliceCtx2.drawImage(
-                    canvas2,
-                    0, Math.ceil(yOffset2 * canvas2.width / imgWidth2),
-                    canvas2.width, sliceCanvas2.height,
-                    0, 0,
-                    canvas2.width, sliceCanvas2.height
-                );
-                const sliceData2 = sliceCanvas2.toDataURL('image/jpeg', 0.98);
-                const sliceHeight2 = (sliceCanvas2.height * imgWidth2) / canvas2.width;
-                pdfDoc2.addImage(sliceData2, 'JPEG', 10, 20, imgWidth2, sliceHeight2);
-
+                const fy2 = pageH2 - mBot2;
+                pdfDoc2.setFillColor(4, 8, 20);
+                pdfDoc2.rect(0, fy2, pageW2, mBot2, 'F');
                 pdfDoc2.setDrawColor(226, 232, 240);
                 pdfDoc2.setLineWidth(0.3);
-                pdfDoc2.line(10, pageHeight2 - 16, pageWidth2 - 10, pageHeight2 - 16);
+                pdfDoc2.line(6, fy2 + 2, pageW2 - 6, fy2 + 2);
                 pdfDoc2.setFontSize(8);
                 pdfDoc2.setTextColor(100, 116, 139);
-                pdfDoc2.text(`Página ${pageNum2} de ${totalPages2}`, pageWidth2 / 2, pageHeight2 - 11, { align: 'center' });
+                pdfDoc2.text(`Página ${p2 + 1} de ${totalPages2}`, pageW2 / 2, fy2 + 9, { align: 'center' });
                 pdfDoc2.setFontSize(6.5);
                 pdfDoc2.setTextColor(148, 163, 184);
-                pdfDoc2.text(`Gerado em ${generationTimestamp}`, pageWidth2 - 10, pageHeight2 - 7, { align: 'right' });
-                pdfDoc2.text('DOCUMENTO INTERNO — NOC Report System', 10, pageHeight2 - 7);
-
-                yOffset2 += usableHeight2;
+                pdfDoc2.text(`Gerado em ${generationTimestamp}`, pageW2 - 6, fy2 + 15, { align: 'right' });
+                pdfDoc2.text('DOCUMENTO INTERNO — NOC Report System', 6, fy2 + 15);
             }
 
             pdfDoc2.save(filename);
@@ -966,9 +965,7 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         }
 
-        const bgStyle = fundoBase64
-            ? `background: #040814 url('${fundoBase64}') no-repeat center center; background-size: cover;`
-            : `background: #040814;`;
+        const bgStyle = `background: #040814;`;
 
         // HTML completo do template
         return `
@@ -1154,7 +1151,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 hour: '2-digit', minute: '2-digit'
             });
 
-            // Usar html2canvas diretamente para garantir captura correta
+            // Capturar o container inteiro como canvas
             const canvas = await html2canvas(pdfContainer, {
                 scale: 2,
                 useCORS: true,
@@ -1170,68 +1167,79 @@ document.addEventListener('DOMContentLoaded', () => {
             // Remover container da tela imediatamente após captura
             document.body.removeChild(pdfContainer);
 
-            // Converter canvas para PDF via jsPDF
-            const { jsPDF } = window.jspdf || {};
-            const imgData = canvas.toDataURL('image/jpeg', 0.98);
-            const pdfDoc = new (window.jspdf ? window.jspdf.jsPDF : jsPDF)({
-                unit: 'mm', format: 'a4', orientation: 'portrait'
-            });
+            // Montar PDF com fundo repetido e conteúdo sem cortes
+            const jsPDFClass = window.jspdf ? window.jspdf.jsPDF : jsPDF;
+            const pdfDoc = new jsPDFClass({ unit: 'mm', format: 'a4', orientation: 'portrait' });
 
-            const pageWidth = pdfDoc.internal.pageSize.getWidth();
-            const pageHeight = pdfDoc.internal.pageSize.getHeight();
-            const imgWidth = pageWidth - 20; // margem 10mm cada lado
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
-            const usableHeight = pageHeight - 42; // margem top 20 + bottom 22
+            const pageW = pdfDoc.internal.pageSize.getWidth();   // 210mm
+            const pageH = pdfDoc.internal.pageSize.getHeight();  // 297mm
+            const marginTop = 18;    // mm — espaço para header
+            const marginBot = 20;    // mm — espaço para footer
+            const marginSide = 0;    // sem margem lateral — imagem preenche tudo
+            const contentW = pageW;  // largura total da página
+            const usable = pageH - marginTop - marginBot; // altura útil por página em mm
 
-            let yOffset = 0;
-            let pageNum = 0;
-            const totalPages = Math.ceil(imgHeight / usableHeight);
+            // Calcular altura total do conteúdo em mm
+            const scale = contentW / (canvas.width / 2); // px → mm (scale=2, então /2)
+            const totalContentH = (canvas.height / 2) * scale; // altura total em mm
+            const totalPages = Math.ceil(totalContentH / usable);
 
-            while (yOffset < imgHeight) {
-                if (pageNum > 0) pdfDoc.addPage();
-                pageNum++;
+            // Pré-gerar imagem de fundo se disponível
+            const bgImg = fundoBase64 || null;
 
-                // Header
-                pdfDoc.setDrawColor(10, 22, 40);
-                pdfDoc.setLineWidth(0.6);
-                pdfDoc.line(10, 14, pageWidth - 10, 14);
+            for (let p = 0; p < totalPages; p++) {
+                if (p > 0) pdfDoc.addPage();
+
+                // 1. Fundo — preenche a página inteira
+                if (bgImg) {
+                    pdfDoc.addImage(bgImg, 'PNG', 0, 0, pageW, pageH);
+                } else {
+                    // Fallback: retângulo sólido escuro
+                    pdfDoc.setFillColor(4, 8, 20);
+                    pdfDoc.rect(0, 0, pageW, pageH, 'F');
+                }
+
+                // 2. Fatia do conteúdo para esta página
+                const srcYmm = p * usable;                  // posição Y em mm no conteúdo total
+                const srcYpx = Math.round(srcYmm / scale * 2); // converter para px do canvas (scale=2)
+                const sliceHmm = Math.min(usable, totalContentH - srcYmm);
+                const sliceHpx = Math.round(sliceHmm / scale * 2);
+
+                if (sliceHpx > 0) {
+                    const sliceCanvas = document.createElement('canvas');
+                    sliceCanvas.width = canvas.width;
+                    sliceCanvas.height = sliceHpx;
+                    const ctx = sliceCanvas.getContext('2d');
+                    ctx.drawImage(canvas, 0, srcYpx, canvas.width, sliceHpx, 0, 0, canvas.width, sliceHpx);
+                    const sliceData = sliceCanvas.toDataURL('image/png');
+                    pdfDoc.addImage(sliceData, 'PNG', marginSide, marginTop, contentW, sliceHmm);
+                }
+
+                // 3. Header
+                pdfDoc.setFillColor(4, 8, 20);
+                pdfDoc.rect(0, 0, pageW, marginTop, 'F');
+                pdfDoc.setDrawColor(0, 242, 254);
+                pdfDoc.setLineWidth(0.4);
+                pdfDoc.line(0, marginTop, pageW, marginTop);
                 pdfDoc.setFontSize(7);
                 pdfDoc.setTextColor(100, 116, 139);
-                pdfDoc.text('NOC Operational Report', 10, 12);
-                pdfDoc.text(dateClean, pageWidth - 10, 12, { align: 'right' });
+                pdfDoc.text('NOC Operational Report', 6, marginTop - 4);
+                pdfDoc.text(dateClean, pageW - 6, marginTop - 4, { align: 'right' });
 
-                // Imagem da fatia
-                const sliceCanvas = document.createElement('canvas');
-                sliceCanvas.width = canvas.width;
-                sliceCanvas.height = Math.min(
-                    Math.ceil(usableHeight * canvas.width / imgWidth),
-                    canvas.height - Math.ceil(yOffset * canvas.width / imgWidth)
-                );
-                const sliceCtx = sliceCanvas.getContext('2d');
-                sliceCtx.drawImage(
-                    canvas,
-                    0, Math.ceil(yOffset * canvas.width / imgWidth),
-                    canvas.width, sliceCanvas.height,
-                    0, 0,
-                    canvas.width, sliceCanvas.height
-                );
-                const sliceData = sliceCanvas.toDataURL('image/jpeg', 0.98);
-                const sliceHeight = (sliceCanvas.height * imgWidth) / canvas.width;
-                pdfDoc.addImage(sliceData, 'JPEG', 10, 20, imgWidth, sliceHeight);
-
-                // Footer
+                // 4. Footer
+                const footerY = pageH - marginBot;
+                pdfDoc.setFillColor(4, 8, 20);
+                pdfDoc.rect(0, footerY, pageW, marginBot, 'F');
                 pdfDoc.setDrawColor(226, 232, 240);
                 pdfDoc.setLineWidth(0.3);
-                pdfDoc.line(10, pageHeight - 16, pageWidth - 10, pageHeight - 16);
+                pdfDoc.line(6, footerY + 2, pageW - 6, footerY + 2);
                 pdfDoc.setFontSize(8);
                 pdfDoc.setTextColor(100, 116, 139);
-                pdfDoc.text(`Página ${pageNum} de ${totalPages}`, pageWidth / 2, pageHeight - 11, { align: 'center' });
+                pdfDoc.text(`Página ${p + 1} de ${totalPages}`, pageW / 2, footerY + 9, { align: 'center' });
                 pdfDoc.setFontSize(6.5);
                 pdfDoc.setTextColor(148, 163, 184);
-                pdfDoc.text(`Gerado em ${generationTimestamp}`, pageWidth - 10, pageHeight - 7, { align: 'right' });
-                pdfDoc.text('DOCUMENTO INTERNO — NOC Report System', 10, pageHeight - 7);
-
-                yOffset += usableHeight;
+                pdfDoc.text(`Gerado em ${generationTimestamp}`, pageW - 6, footerY + 15, { align: 'right' });
+                pdfDoc.text('DOCUMENTO INTERNO — NOC Report System', 6, footerY + 15);
             }
 
             pdfDoc.save(filename);
