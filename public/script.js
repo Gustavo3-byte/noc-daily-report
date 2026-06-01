@@ -600,9 +600,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const templateHtml = buildPdfHtml(logoBase64, fundoBase64, pdfState);
 
             const pdfContainer = document.createElement('div');
-            pdfContainer.className = 'pdf-render-container';
+            pdfContainer.style.cssText = [
+                'position:fixed',
+                'top:0',
+                'left:0',
+                'width:794px',
+                'min-height:100vh',
+                'z-index:99999',
+                'background:#040814',
+                'overflow:visible',
+                'pointer-events:none'
+            ].join(';');
             pdfContainer.innerHTML = templateHtml;
             document.body.appendChild(pdfContainer);
+
+            // Aguardar renderização completa
+            await new Promise(resolve => setTimeout(resolve, 600));
 
             const analystClean = pdfState.analystName.trim().replace(/\s+/g, '_') || 'sem_analista';
             const dateClean = pdfState.reportDate || 'sem_data';
@@ -613,7 +626,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 margin: [20, 10, 22, 10],
                 filename: filename,
                 image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true, backgroundColor: '#040814', logging: false },
+                html2canvas: {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#040814',
+                    logging: false,
+                    windowWidth: 794,
+                    scrollX: 0,
+                    scrollY: 0
+                },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
                 pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
             };
@@ -1041,11 +1062,24 @@ document.addEventListener('DOMContentLoaded', () => {
             // 2. Construir o HTML do template
             const templateHtml = buildPdfHtml(logoBase64, fundoBase64);
 
-            // 3. Criar container temporário fora da tela
+            // 3. Criar container visível para o html2canvas capturar corretamente
             const pdfContainer = document.createElement('div');
-            pdfContainer.className = 'pdf-render-container';
+            pdfContainer.style.cssText = [
+                'position:fixed',
+                'top:0',
+                'left:0',
+                'width:794px',
+                'min-height:100vh',
+                'z-index:99999',
+                'background:#040814',
+                'overflow:visible',
+                'pointer-events:none'
+            ].join(';');
             pdfContainer.innerHTML = templateHtml;
             document.body.appendChild(pdfContainer);
+
+            // Aguardar renderização completa antes de capturar
+            await new Promise(resolve => setTimeout(resolve, 600));
 
             // 4. Gerar nome do arquivo
             const analystClean = appState.analystName ? appState.analystName.trim().replace(/\s+/g, '_') : 'sem_analista';
@@ -1055,14 +1089,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // 5. Configurar html2pdf
             const opt = {
-                margin:       [20, 10, 22, 10], // top, left, bottom, right (mm) - espaço para header/footer
+                margin:       [20, 10, 22, 10],
                 filename:     filename,
                 image:        { type: 'jpeg', quality: 0.98 },
                 html2canvas:  {
                     scale: 2,
                     useCORS: true,
                     backgroundColor: '#040814',
-                    logging: false
+                    logging: false,
+                    windowWidth: 794,
+                    scrollX: 0,
+                    scrollY: 0
                 },
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
                 pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
