@@ -1278,11 +1278,30 @@ button {
 @media print {
     body {
         background-color: #040814 !important;
+        /* O fundo em si é renderizado pelo ::before fixo abaixo, que se
+           repete em TODAS as páginas impressas. Mantemos a cor sólida como
+           fallback caso a imagem não carregue. */
+        background-image: none !important;
+        color: #ffffff !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* Fundo institucional FIXO por página (mascote + arte) — um elemento
+       position:fixed é repintado em cada página pelo mecanismo de impressão,
+       então a arte aparece inteira e idêntica em toda página, sem ser cortada. */
+    body::before {
+        content: "" !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
         background-image: url('fundo_relatorio.png') !important;
         background-size: cover !important;
         background-position: center !important;
         background-repeat: no-repeat !important;
-        color: #ffffff !important;
+        z-index: -1 !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }

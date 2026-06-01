@@ -609,7 +609,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 'width:794px',
                 'min-height:100vh',
                 'z-index:99999',
-                'background:#040814',
+                'background:transparent',
                 'overflow:visible',
                 'pointer-events:none'
             ].join(';');
@@ -631,7 +631,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 html2canvas: {
                     scale: 2,
                     useCORS: true,
-                    backgroundColor: '#040814',
+                    backgroundColor: null,
                     logging: false,
                     windowWidth: 794,
                     scrollX: 0,
@@ -649,7 +649,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const canvas2 = await html2canvas(pdfContainer, {
                 scale: 2,
                 useCORS: true,
-                backgroundColor: '#040814',
+                backgroundColor: null,
                 logging: false,
                 windowWidth: 794,
                 scrollX: 0,
@@ -965,11 +965,14 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         }
 
-        const bgStyle = `background: #040814;`;
+        // Fundo TRANSPARENTE: o fundo institucional é desenhado pelo jsPDF
+        // por página (addImage 0,0,pageW,pageH), então o conteúdo não deve
+        // pintar um fundo opaco nem carregar a arte para dentro do recorte.
+        const bgStyle = `background: transparent;`;
 
         // HTML completo do template
         return `
-            <div style="font-family:'Segoe UI', Arial, Helvetica, sans-serif; color:#ffffff; ${bgStyle} padding:24px; margin:0; width:100%; box-sizing:border-box; min-height:297mm;">
+            <div style="font-family:'Segoe UI', Arial, Helvetica, sans-serif; color:#ffffff; ${bgStyle} padding:24px; margin:0; width:100%; box-sizing:border-box;">
                 
                 <!-- CABEÇALHO CORPORATIVO -->
                 <div style="background:rgba(10, 20, 45, 0.85); border:1px solid rgba(255, 255, 255, 0.15); border-left:4px solid #00f2fe; border-radius:12px; padding:24px 28px; margin-bottom:20px;">
@@ -1111,7 +1114,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 'width:794px',
                 'min-height:100vh',
                 'z-index:99999',
-                'background:#040814',
+                'background:transparent',
                 'overflow:visible',
                 'pointer-events:none'
             ].join(';');
@@ -1135,7 +1138,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 html2canvas:  {
                     scale: 2,
                     useCORS: true,
-                    backgroundColor: '#040814',
+                    backgroundColor: null,
                     logging: false,
                     windowWidth: 794,
                     scrollX: 0,
@@ -1155,7 +1158,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const canvas = await html2canvas(pdfContainer, {
                 scale: 2,
                 useCORS: true,
-                backgroundColor: '#040814',
+                backgroundColor: null,
                 logging: false,
                 windowWidth: 794,
                 scrollX: 0,
