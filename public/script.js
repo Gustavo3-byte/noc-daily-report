@@ -14,6 +14,11 @@ document.addEventListener('DOMContentLoaded', () => {
         activities: []
     };
 
+    // --- QUALIDADE DE RENDERIZAÇÃO DO PDF ---
+    // Fator de super-amostragem da captura (html2canvas). Quanto maior, mais
+    // nítido o texto/painéis no PDF. 3 = alta qualidade com custo razoável.
+    const PDF_CAPTURE_SCALE = 3;
+
     // --- ELEMENTOS DOM ---
     const inputAnalystName = document.getElementById('input-analyst-name');
     const inputReportDate = document.getElementById('input-report-date');
@@ -647,7 +652,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             const canvas2 = await html2canvas(pdfContainer, {
-                scale: 2,
+                scale: PDF_CAPTURE_SCALE,
                 useCORS: true,
                 backgroundColor: null,
                 logging: false,
@@ -661,13 +666,13 @@ document.addEventListener('DOMContentLoaded', () => {
             document.body.removeChild(pdfContainer);
 
             const jsPDFClass2 = window.jspdf ? window.jspdf.jsPDF : jsPDF;
-            const pdfDoc2 = new jsPDFClass2({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+            const pdfDoc2 = new jsPDFClass2({ unit: 'mm', format: 'a4', orientation: 'portrait', compress: true });
 
             const pageW2 = pdfDoc2.internal.pageSize.getWidth();
             const pageH2 = pdfDoc2.internal.pageSize.getHeight();
-            const mTop2 = 18, mBot2 = 20, usable2 = pageH2 - mTop2 - mBot2;
-            const scale2 = pageW2 / (canvas2.width / 2);
-            const totalH2 = (canvas2.height / 2) * scale2;
+            const mTop2 = 10, mBot2 = 10, usable2 = pageH2 - mTop2 - mBot2;
+            const scale2 = pageW2 / (canvas2.width / PDF_CAPTURE_SCALE);
+            const totalH2 = (canvas2.height / PDF_CAPTURE_SCALE) * scale2;
             const totalPages2 = Math.ceil(totalH2 / usable2);
 
             for (let p2 = 0; p2 < totalPages2; p2++) {
@@ -681,9 +686,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 const srcY2mm = p2 * usable2;
-                const srcY2px = Math.round(srcY2mm / scale2 * 2);
+                const srcY2px = Math.round(srcY2mm / scale2 * PDF_CAPTURE_SCALE);
                 const sliceH2mm = Math.min(usable2, totalH2 - srcY2mm);
-                const sliceH2px = Math.round(sliceH2mm / scale2 * 2);
+                const sliceH2px = Math.round(sliceH2mm / scale2 * PDF_CAPTURE_SCALE);
 
                 if (sliceH2px > 0) {
                     const sc2 = document.createElement('canvas');
@@ -693,18 +698,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     pdfDoc2.addImage(sc2.toDataURL('image/png'), 'PNG', 0, mTop2, pageW2, sliceH2mm);
                 }
 
-                pdfDoc2.setFillColor(4, 8, 20);
-                pdfDoc2.rect(0, 0, pageW2, mTop2, 'F');
-                pdfDoc2.setDrawColor(0, 242, 254);
-                pdfDoc2.setLineWidth(0.4);
-                pdfDoc2.line(0, mTop2, pageW2, mTop2);
-                pdfDoc2.setFontSize(7);
-                pdfDoc2.setTextColor(100, 116, 139);
-                pdfDoc2.text('NOC Operational Report', 6, mTop2 - 4);
-                pdfDoc2.text(dateClean, pageW2 - 6, mTop2 - 4, { align: 'right' });
-
+                // Cabeçalho removido — sem faixa nem textos no topo.
                 // Rodapé removido — sem faixa, número de página ou créditos.
-                // A arte de fundo aparece inteira até a base da página.
+                // A arte de fundo aparece inteira em toda a página.
             }
 
             pdfDoc2.save(filename);
@@ -1145,7 +1141,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Capturar o container inteiro como canvas
             const canvas = await html2canvas(pdfContainer, {
-                scale: 2,
+                scale: PDF_CAPTURE_SCALE,
                 useCORS: true,
                 backgroundColor: null,
                 logging: false,
@@ -1161,19 +1157,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Montar PDF com fundo repetido e conteúdo sem cortes
             const jsPDFClass = window.jspdf ? window.jspdf.jsPDF : jsPDF;
-            const pdfDoc = new jsPDFClass({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+            const pdfDoc = new jsPDFClass({ unit: 'mm', format: 'a4', orientation: 'portrait', compress: true });
 
             const pageW = pdfDoc.internal.pageSize.getWidth();   // 210mm
             const pageH = pdfDoc.internal.pageSize.getHeight();  // 297mm
-            const marginTop = 18;    // mm — espaço para header
-            const marginBot = 20;    // mm — espaço para footer
+            const marginTop = 10;    // mm — margem superior limpa (sem cabeçalho)
+            const marginBot = 10;    // mm — margem inferior limpa (sem rodapé)
             const marginSide = 0;    // sem margem lateral — imagem preenche tudo
             const contentW = pageW;  // largura total da página
             const usable = pageH - marginTop - marginBot; // altura útil por página em mm
 
             // Calcular altura total do conteúdo em mm
-            const scale = contentW / (canvas.width / 2); // px → mm (scale=2, então /2)
-            const totalContentH = (canvas.height / 2) * scale; // altura total em mm
+            const scale = contentW / (canvas.width / PDF_CAPTURE_SCALE); // px → mm
+            const totalContentH = (canvas.height / PDF_CAPTURE_SCALE) * scale; // altura total em mm
             const totalPages = Math.ceil(totalContentH / usable);
 
             // Pré-gerar imagem de fundo se disponível
@@ -1193,9 +1189,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // 2. Fatia do conteúdo para esta página
                 const srcYmm = p * usable;                  // posição Y em mm no conteúdo total
-                const srcYpx = Math.round(srcYmm / scale * 2); // converter para px do canvas (scale=2)
+                const srcYpx = Math.round(srcYmm / scale * PDF_CAPTURE_SCALE); // converter para px do canvas
                 const sliceHmm = Math.min(usable, totalContentH - srcYmm);
-                const sliceHpx = Math.round(sliceHmm / scale * 2);
+                const sliceHpx = Math.round(sliceHmm / scale * PDF_CAPTURE_SCALE);
 
                 if (sliceHpx > 0) {
                     const sliceCanvas = document.createElement('canvas');
@@ -1207,19 +1203,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     pdfDoc.addImage(sliceData, 'PNG', marginSide, marginTop, contentW, sliceHmm);
                 }
 
-                // 3. Header
-                pdfDoc.setFillColor(4, 8, 20);
-                pdfDoc.rect(0, 0, pageW, marginTop, 'F');
-                pdfDoc.setDrawColor(0, 242, 254);
-                pdfDoc.setLineWidth(0.4);
-                pdfDoc.line(0, marginTop, pageW, marginTop);
-                pdfDoc.setFontSize(7);
-                pdfDoc.setTextColor(100, 116, 139);
-                pdfDoc.text('NOC Operational Report', 6, marginTop - 4);
-                pdfDoc.text(dateClean, pageW - 6, marginTop - 4, { align: 'right' });
-
+                // 3. Cabeçalho removido — sem faixa nem textos no topo.
                 // 4. Rodapé removido — sem faixa, número de página ou créditos.
-                // A arte de fundo aparece inteira até a base da página.
+                // A arte de fundo aparece inteira em toda a página.
             }
 
             pdfDoc.save(filename);
