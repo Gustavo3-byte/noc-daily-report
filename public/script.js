@@ -606,11 +606,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const analystClean = pdfState.analystName.trim().replace(/\s+/g, '_') || 'sem_analista';
             const dateClean = pdfState.reportDate || 'sem_data';
-            let shiftFile = 'sem_turno';
-            if (pdfState.shift === '1') shiftFile = 'Turno_1';
-            else if (pdfState.shift === '2') shiftFile = 'Turno_2';
-            else if (pdfState.shift === '3') shiftFile = 'Turno_3';
-            else if (pdfState.shift === 'comercial') shiftFile = 'Comercial';
+            let shiftFile = pdfState.shift ? pdfState.shift.replace('-', '_') : 'sem_turno';
             const filename = `relatorio_noc_${dateClean}_${shiftFile}_${analystClean}.pdf`;
 
             const opt = {
@@ -670,6 +666,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- HELPERS ---
     function getShiftLabel(shift) {
+        if (shift === '07-17') return '07:00 às 17:00';
+        if (shift === '08-18') return '08:00 às 18:00';
+        if (shift === '09-19') return '09:00 às 19:00';
+        // compatibilidade com valores legados
         if (shift === '1') return '1º Turno (06:00 - 14:00)';
         if (shift === '2') return '2º Turno (14:00 - 22:00)';
         if (shift === '3') return '3º Turno (22:00 - 06:00)';
@@ -1019,6 +1019,13 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // Validar turno obrigatório
+        if (!appState.shift) {
+            alert('Por favor, selecione o Turno de Trabalho antes de exportar o PDF.');
+            if (selectNocShift) selectNocShift.focus();
+            return;
+        }
+
         // Feedback visual: mudar o botão para "Gerando..."
         const originalBtnText = btnExportPdf.innerHTML;
         btnExportPdf.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gerando PDF...';
@@ -1043,11 +1050,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // 4. Gerar nome do arquivo
             const analystClean = appState.analystName ? appState.analystName.trim().replace(/\s+/g, '_') : 'sem_analista';
             const dateClean = appState.reportDate || 'sem_data';
-            let shiftFile = 'sem_turno';
-            if (appState.shift === '1') shiftFile = 'Turno_1';
-            else if (appState.shift === '2') shiftFile = 'Turno_2';
-            else if (appState.shift === '3') shiftFile = 'Turno_3';
-            else if (appState.shift === 'comercial') shiftFile = 'Comercial';
+            let shiftFile = appState.shift ? appState.shift.replace('-', '_') : 'sem_turno';
             const filename = `relatorio_noc_${dateClean}_${shiftFile}_${analystClean}.pdf`;
 
             // 5. Configurar html2pdf
