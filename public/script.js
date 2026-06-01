@@ -646,39 +646,80 @@ document.addEventListener('DOMContentLoaded', () => {
                 hour: '2-digit', minute: '2-digit'
             });
 
-            await html2pdf()
-                .set(opt)
-                .from(pdfContainer)
-                .toPdf()
-                .get('pdf')
-                .then(function(pdf) {
-                    const totalPages = pdf.internal.getNumberOfPages();
-                    const pageWidth = pdf.internal.pageSize.getWidth();
-                    const pageHeight = pdf.internal.pageSize.getHeight();
-                    for (let i = 1; i <= totalPages; i++) {
-                        pdf.setPage(i);
-                        pdf.setDrawColor(10, 22, 40);
-                        pdf.setLineWidth(0.6);
-                        pdf.line(10, 14, pageWidth - 10, 14);
-                        pdf.setFontSize(7);
-                        pdf.setTextColor(100, 116, 139);
-                        pdf.text('NOC Operational Report', 10, 12);
-                        pdf.text(`${dateClean}`, pageWidth - 10, 12, { align: 'right' });
-                        pdf.setDrawColor(226, 232, 240);
-                        pdf.setLineWidth(0.3);
-                        pdf.line(10, pageHeight - 16, pageWidth - 10, pageHeight - 16);
-                        pdf.setFontSize(8);
-                        pdf.setTextColor(100, 116, 139);
-                        pdf.text(`Página ${i} de ${totalPages}`, pageWidth / 2, pageHeight - 11, { align: 'center' });
-                        pdf.setFontSize(6.5);
-                        pdf.setTextColor(148, 163, 184);
-                        pdf.text(`Gerado em ${generationTimestamp}`, pageWidth - 10, pageHeight - 7, { align: 'right' });
-                        pdf.text('DOCUMENTO INTERNO — NOC Report System', 10, pageHeight - 7);
-                    }
-                })
-                .save();
+            const canvas2 = await html2canvas(pdfContainer, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#040814',
+                logging: false,
+                windowWidth: 794,
+                scrollX: 0,
+                scrollY: 0,
+                width: pdfContainer.scrollWidth,
+                height: pdfContainer.scrollHeight
+            });
 
             document.body.removeChild(pdfContainer);
+
+            const imgData2 = canvas2.toDataURL('image/jpeg', 0.98);
+            const pdfDoc2 = new (window.jspdf ? window.jspdf.jsPDF : jsPDF)({
+                unit: 'mm', format: 'a4', orientation: 'portrait'
+            });
+
+            const pageWidth2 = pdfDoc2.internal.pageSize.getWidth();
+            const pageHeight2 = pdfDoc2.internal.pageSize.getHeight();
+            const imgWidth2 = pageWidth2 - 20;
+            const imgHeight2 = (canvas2.height * imgWidth2) / canvas2.width;
+            const usableHeight2 = pageHeight2 - 42;
+
+            let yOffset2 = 0;
+            let pageNum2 = 0;
+            const totalPages2 = Math.ceil(imgHeight2 / usableHeight2);
+
+            while (yOffset2 < imgHeight2) {
+                if (pageNum2 > 0) pdfDoc2.addPage();
+                pageNum2++;
+
+                pdfDoc2.setDrawColor(10, 22, 40);
+                pdfDoc2.setLineWidth(0.6);
+                pdfDoc2.line(10, 14, pageWidth2 - 10, 14);
+                pdfDoc2.setFontSize(7);
+                pdfDoc2.setTextColor(100, 116, 139);
+                pdfDoc2.text('NOC Operational Report', 10, 12);
+                pdfDoc2.text(dateClean, pageWidth2 - 10, 12, { align: 'right' });
+
+                const sliceCanvas2 = document.createElement('canvas');
+                sliceCanvas2.width = canvas2.width;
+                sliceCanvas2.height = Math.min(
+                    Math.ceil(usableHeight2 * canvas2.width / imgWidth2),
+                    canvas2.height - Math.ceil(yOffset2 * canvas2.width / imgWidth2)
+                );
+                const sliceCtx2 = sliceCanvas2.getContext('2d');
+                sliceCtx2.drawImage(
+                    canvas2,
+                    0, Math.ceil(yOffset2 * canvas2.width / imgWidth2),
+                    canvas2.width, sliceCanvas2.height,
+                    0, 0,
+                    canvas2.width, sliceCanvas2.height
+                );
+                const sliceData2 = sliceCanvas2.toDataURL('image/jpeg', 0.98);
+                const sliceHeight2 = (sliceCanvas2.height * imgWidth2) / canvas2.width;
+                pdfDoc2.addImage(sliceData2, 'JPEG', 10, 20, imgWidth2, sliceHeight2);
+
+                pdfDoc2.setDrawColor(226, 232, 240);
+                pdfDoc2.setLineWidth(0.3);
+                pdfDoc2.line(10, pageHeight2 - 16, pageWidth2 - 10, pageHeight2 - 16);
+                pdfDoc2.setFontSize(8);
+                pdfDoc2.setTextColor(100, 116, 139);
+                pdfDoc2.text(`Página ${pageNum2} de ${totalPages2}`, pageWidth2 / 2, pageHeight2 - 11, { align: 'center' });
+                pdfDoc2.setFontSize(6.5);
+                pdfDoc2.setTextColor(148, 163, 184);
+                pdfDoc2.text(`Gerado em ${generationTimestamp}`, pageWidth2 - 10, pageHeight2 - 7, { align: 'right' });
+                pdfDoc2.text('DOCUMENTO INTERNO — NOC Report System', 10, pageHeight2 - 7);
+
+                yOffset2 += usableHeight2;
+            }
+
+            pdfDoc2.save(filename);
         } catch (err) {
             console.error('Erro ao gerar PDF:', err);
             const leftover = document.querySelector('.pdf-render-container');
@@ -1113,58 +1154,87 @@ document.addEventListener('DOMContentLoaded', () => {
                 hour: '2-digit', minute: '2-digit'
             });
 
-            await html2pdf()
-                .set(opt)
-                .from(pdfContainer)
-                .toPdf()
-                .get('pdf')
-                .then(function(pdf) {
-                    const totalPages = pdf.internal.getNumberOfPages();
-                    const pageWidth = pdf.internal.pageSize.getWidth();
-                    const pageHeight = pdf.internal.pageSize.getHeight();
+            // Usar html2canvas diretamente para garantir captura correta
+            const canvas = await html2canvas(pdfContainer, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#040814',
+                logging: false,
+                windowWidth: 794,
+                scrollX: 0,
+                scrollY: 0,
+                width: pdfContainer.scrollWidth,
+                height: pdfContainer.scrollHeight
+            });
 
-                    for (let i = 1; i <= totalPages; i++) {
-                        pdf.setPage(i);
-
-                        // === HEADER (linha fina no topo) ===
-                        pdf.setDrawColor(10, 22, 40); // #0a1628
-                        pdf.setLineWidth(0.6);
-                        pdf.line(10, 14, pageWidth - 10, 14);
-
-                        pdf.setFontSize(7);
-                        pdf.setTextColor(100, 116, 139); // #64748b
-                        pdf.text('NOC Operational Report', 10, 12);
-                        pdf.text(`${dateClean}`, pageWidth - 10, 12, { align: 'right' });
-
-                        // === FOOTER ===
-                        // Linha do rodapé
-                        pdf.setDrawColor(226, 232, 240); // #e2e8f0
-                        pdf.setLineWidth(0.3);
-                        pdf.line(10, pageHeight - 16, pageWidth - 10, pageHeight - 16);
-
-                        // Número da página (centralizado)
-                        pdf.setFontSize(8);
-                        pdf.setTextColor(100, 116, 139);
-                        pdf.text(
-                            `Página ${i} de ${totalPages}`,
-                            pageWidth / 2,
-                            pageHeight - 11,
-                            { align: 'center' }
-                        );
-
-                        // Timestamp de geração (direita)
-                        pdf.setFontSize(6.5);
-                        pdf.setTextColor(148, 163, 184); // #94a3b8
-                        pdf.text(`Gerado em ${generationTimestamp}`, pageWidth - 10, pageHeight - 7, { align: 'right' });
-
-                        // Aviso de confidencialidade (esquerda)
-                        pdf.text('DOCUMENTO INTERNO — NOC Report System', 10, pageHeight - 7);
-                    }
-                })
-                .save();
-
-            // 7. Limpar container temporário
+            // Remover container da tela imediatamente após captura
             document.body.removeChild(pdfContainer);
+
+            // Converter canvas para PDF via jsPDF
+            const { jsPDF } = window.jspdf || {};
+            const imgData = canvas.toDataURL('image/jpeg', 0.98);
+            const pdfDoc = new (window.jspdf ? window.jspdf.jsPDF : jsPDF)({
+                unit: 'mm', format: 'a4', orientation: 'portrait'
+            });
+
+            const pageWidth = pdfDoc.internal.pageSize.getWidth();
+            const pageHeight = pdfDoc.internal.pageSize.getHeight();
+            const imgWidth = pageWidth - 20; // margem 10mm cada lado
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            const usableHeight = pageHeight - 42; // margem top 20 + bottom 22
+
+            let yOffset = 0;
+            let pageNum = 0;
+            const totalPages = Math.ceil(imgHeight / usableHeight);
+
+            while (yOffset < imgHeight) {
+                if (pageNum > 0) pdfDoc.addPage();
+                pageNum++;
+
+                // Header
+                pdfDoc.setDrawColor(10, 22, 40);
+                pdfDoc.setLineWidth(0.6);
+                pdfDoc.line(10, 14, pageWidth - 10, 14);
+                pdfDoc.setFontSize(7);
+                pdfDoc.setTextColor(100, 116, 139);
+                pdfDoc.text('NOC Operational Report', 10, 12);
+                pdfDoc.text(dateClean, pageWidth - 10, 12, { align: 'right' });
+
+                // Imagem da fatia
+                const sliceCanvas = document.createElement('canvas');
+                sliceCanvas.width = canvas.width;
+                sliceCanvas.height = Math.min(
+                    Math.ceil(usableHeight * canvas.width / imgWidth),
+                    canvas.height - Math.ceil(yOffset * canvas.width / imgWidth)
+                );
+                const sliceCtx = sliceCanvas.getContext('2d');
+                sliceCtx.drawImage(
+                    canvas,
+                    0, Math.ceil(yOffset * canvas.width / imgWidth),
+                    canvas.width, sliceCanvas.height,
+                    0, 0,
+                    canvas.width, sliceCanvas.height
+                );
+                const sliceData = sliceCanvas.toDataURL('image/jpeg', 0.98);
+                const sliceHeight = (sliceCanvas.height * imgWidth) / canvas.width;
+                pdfDoc.addImage(sliceData, 'JPEG', 10, 20, imgWidth, sliceHeight);
+
+                // Footer
+                pdfDoc.setDrawColor(226, 232, 240);
+                pdfDoc.setLineWidth(0.3);
+                pdfDoc.line(10, pageHeight - 16, pageWidth - 10, pageHeight - 16);
+                pdfDoc.setFontSize(8);
+                pdfDoc.setTextColor(100, 116, 139);
+                pdfDoc.text(`Página ${pageNum} de ${totalPages}`, pageWidth / 2, pageHeight - 11, { align: 'center' });
+                pdfDoc.setFontSize(6.5);
+                pdfDoc.setTextColor(148, 163, 184);
+                pdfDoc.text(`Gerado em ${generationTimestamp}`, pageWidth - 10, pageHeight - 7, { align: 'right' });
+                pdfDoc.text('DOCUMENTO INTERNO — NOC Report System', 10, pageHeight - 7);
+
+                yOffset += usableHeight;
+            }
+
+            pdfDoc.save(filename);
 
         } catch (err) {
             console.error("Erro ao gerar PDF:", err);
