@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOC - Login</title>
+    <meta name="description" content="Autenticação do sistema NOC - Relatório Diário de Atividades.">
+    <meta name="author" content="NOC Team">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- Folha de Estilos -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="background-overlay"></div>
+
+    <div class="login-container">
+        <div class="login-card glass-panel" id="login-card-panel">
+            <!-- Logo -->
+            <div class="login-logo-wrapper">
+                <img src="logo.png" alt="NOC Logo" class="login-logo" id="login-logo-img">
+                <div class="login-logo-glow"></div>
+            </div>
+
+            <!-- Title -->
+            <h1 class="login-title" id="login-main-title">NOC</h1>
+            <p class="login-subtitle" id="login-sub-title">AUTENTICAÇÃO DO SISTEMA</p>
+
+            <!-- Login Form -->
+            <form id="login-form" autocomplete="off">
+                <div class="login-form-group">
+                    <label for="login-username">Usuário</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-user input-icon"></i>
+                        <input type="text" id="login-username" placeholder="Digite seu usuário" required autocomplete="username">
+                    </div>
+                </div>
+
+                <div class="login-form-group">
+                    <label for="login-password">Senha</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-lock input-icon"></i>
+                        <input type="password" id="login-password" placeholder="Digite sua senha" required autocomplete="current-password">
+                    </div>
+                </div>
+
+                <!-- Error Message -->
+                <div class="login-error hidden" id="login-error-message">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    <span id="login-error-text">Credenciais inválidas.</span>
+                </div>
+
+                <!-- Login Button -->
+                <button type="submit" id="btn-login" class="btn-primary btn-login">
+                    <i class="fa-solid fa-right-to-bracket"></i>
+                    <span id="btn-login-text">Entrar</span>
+                </button>
+            </form>
+
+            <!-- Footer -->
+            <div class="login-footer">
+                <span class="login-footer-text">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    Acesso restrito a operadores autorizados
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+</body>
+</html>

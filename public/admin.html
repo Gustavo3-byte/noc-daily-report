@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOC - Painel Administrativo</title>
+    <meta name="description" content="Painel Administrativo do NOC — Gerenciamento de usuários e relatórios.">
+    <meta name="author" content="NOC Team">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- Folha de Estilos -->
+    <link rel="stylesheet" href="style.css">
+    <!-- html2pdf.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+    <div class="background-overlay"></div>
+
+    <div class="app-container">
+        <!-- HEADER -->
+        <header class="noc-header glass-panel" id="admin-header-panel">
+            <div class="header-logo-title">
+                <img src="logo.png" alt="NOC Logo" class="noc-logo" id="admin-logo-img">
+                <div class="title-container">
+                    <h1 id="admin-main-title">PAINEL ADMINISTRATIVO</h1>
+                    <p class="subtitle" id="admin-sub-title">NOC OPERATIONS MANAGEMENT</p>
+                </div>
+            </div>
+
+            <div class="user-info-area">
+                <a href="/" class="btn-admin-link" id="btn-back-dashboard" title="Voltar ao Dashboard">
+                    <i class="fa-solid fa-gauge-high"></i> Dashboard
+                </a>
+                <div class="user-avatar" id="admin-user-avatar">AD</div>
+                <span class="user-name-text" id="admin-user-name">Administrador</span>
+                <button type="button" id="btn-admin-logout" class="btn-logout" title="Sair do sistema">
+                    <i class="fa-solid fa-right-from-bracket"></i> Sair
+                </button>
+            </div>
+        </header>
+
+        <!-- MAIN CONTENT -->
+        <main class="admin-grid">
+
+            <!-- SECTION 1: User Management -->
+            <section class="glass-panel admin-section" id="section-user-management">
+                <div class="panel-header">
+                    <i class="fa-solid fa-users-gear panel-icon"></i>
+                    <h2>Gerenciamento de Usuários</h2>
+                    <span class="badge" id="user-counter">0 Usuários</span>
+                </div>
+
+                <!-- Create User Form -->
+                <div class="admin-create-form" id="admin-create-user-form">
+                    <h3 class="admin-form-title">
+                        <i class="fa-solid fa-user-plus"></i> Cadastrar Novo Usuário
+                    </h3>
+                    <div class="admin-form-inputs">
+                        <div class="form-group">
+                            <label for="admin-new-fullname">Nome Completo</label>
+                            <div class="input-wrapper">
+                                <i class="fa-solid fa-id-badge input-icon"></i>
+                                <input type="text" id="admin-new-fullname" placeholder="Nome completo do operador">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="admin-new-username">Usuário (Login)</label>
+                            <div class="input-wrapper">
+                                <i class="fa-solid fa-user input-icon"></i>
+                                <input type="text" id="admin-new-username" placeholder="Nome de usuário">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="admin-new-password">Senha</label>
+                            <div class="input-wrapper">
+                                <i class="fa-solid fa-lock input-icon"></i>
+                                <input type="password" id="admin-new-password" placeholder="Senha do usuário">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="admin-new-role">Perfil</label>
+                            <div class="input-wrapper">
+                                <i class="fa-solid fa-shield-halved input-icon"></i>
+                                <select id="admin-new-role">
+                                    <option value="analyst">Analista</option>
+                                    <option value="admin">Administrador</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group flex-align-end">
+                            <button type="button" id="btn-create-user" class="btn-primary">
+                                <i class="fa-solid fa-user-plus"></i> Criar Usuário
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Create user feedback -->
+                    <div class="admin-feedback hidden" id="create-user-feedback">
+                        <span id="create-user-feedback-text"></span>
+                    </div>
+                </div>
+
+                <!-- Users Table -->
+                <div class="activities-table-wrapper" style="margin-top: 20px;">
+                    <table class="activities-table admin-table" id="table-users-list">
+                        <thead>
+                            <tr>
+                                <th style="width: 6%">ID</th>
+                                <th style="width: 25%">Nome</th>
+                                <th style="width: 20%">Usuário</th>
+                                <th style="width: 15%">Perfil</th>
+                                <th style="width: 22%">Data de Criação</th>
+                                <th style="width: 12%">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-users-rows">
+                            <tr id="users-empty-state">
+                                <td colspan="6" class="empty-state">
+                                    <i class="fa-solid fa-users"></i>
+                                    Carregando usuários...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- SECTION 2: All Reports -->
+            <section class="glass-panel admin-section" id="section-all-reports">
+                <div class="panel-header">
+                    <i class="fa-solid fa-file-lines panel-icon"></i>
+                    <h2>Todos os Relatórios</h2>
+                    <span class="badge" id="reports-counter">0 Relatórios</span>
+                </div>
+
+                <!-- Filters -->
+                <div class="admin-filters" id="admin-report-filters">
+                    <div class="form-group">
+                        <label for="filter-analyst">Analista</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-user-tag input-icon"></i>
+                            <input type="text" id="filter-analyst" placeholder="Filtrar por nome do analista">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="filter-date-start">Data Início</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-calendar-day input-icon"></i>
+                            <input type="date" id="filter-date-start">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="filter-date-end">Data Fim</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-calendar-day input-icon"></i>
+                            <input type="date" id="filter-date-end">
+                        </div>
+                    </div>
+                    <div class="form-group flex-align-end">
+                        <button type="button" id="btn-clear-filters" class="btn-secondary">
+                            <i class="fa-solid fa-filter-circle-xmark"></i> Limpar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Reports Table -->
+                <div class="activities-table-wrapper" style="margin-top: 20px;">
+                    <table class="activities-table admin-table" id="table-all-reports">
+                        <thead>
+                            <tr>
+                                <th style="width: 12%">Data</th>
+                                <th style="width: 18%">Turno</th>
+                                <th style="width: 20%">Analista</th>
+                                <th style="width: 12%">Status</th>
+                                <th style="width: 13%">Atividades</th>
+                                <th style="width: 25%">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-reports-rows">
+                            <tr id="reports-empty-state">
+                                <td colspan="6" class="empty-state">
+                                    <i class="fa-solid fa-file-lines"></i>
+                                    Carregando relatórios...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- MODAL: View Report Detail -->
+    <div class="modal-overlay" id="modal-report-detail">
+        <div class="modal-content glass-panel" id="modal-report-content">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-file-circle-info"></i> Detalhes do Relatório</h3>
+                <button type="button" id="btn-close-modal" class="btn-icon-danger" title="Fechar">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="modal-report-body">
+                <!-- Filled dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- DIALOG: Confirm Delete -->
+    <div class="custom-dialog-overlay" id="dialog-confirm-delete">
+        <div class="custom-dialog-box glass-panel">
+            <h3><i class="fa-solid fa-circle-question warning-color"></i> Confirmar Exclusão?</h3>
+            <p id="dialog-delete-message">Tem certeza que deseja excluir este item? Essa ação não pode ser desfeita.</p>
+            <div class="dialog-actions">
+                <button type="button" id="btn-cancel-delete" class="btn-secondary">Cancelar</button>
+                <button type="button" id="btn-confirm-delete" class="btn-danger">Sim, Excluir</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>

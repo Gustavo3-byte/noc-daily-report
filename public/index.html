@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOC - Relatório Diário</title>
+    <!-- Meta tags SEO -->
+    <meta name="description" content="Dashboard e Gerador de Relatório Diário de Atividades para equipes de NOC (Network Operations Center) com salvamento automático e exportação de PDF.">
+    <meta name="author" content="NOC Team">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- Folha de Estilos -->
+    <link rel="stylesheet" href="style.css">
+    <!-- html2pdf.js CDN (Versão estável e sem restrição de integridade) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+    <div class="background-overlay"></div>
+    
+    <div class="app-container">
+        <!-- HEADER -->
+        <header class="noc-header glass-panel" id="noc-header-panel">
+            <div class="header-logo-title">
+                <img src="logo.png" alt="NOC Logo" class="noc-logo" id="noc-logo-img">
+                <div class="title-container">
+                    <h1 id="app-main-title">NOC</h1>
+                </div>
+            </div>
+            
+            <div class="header-stats">
+                <div class="stat-mini-card" id="mini-card-status">
+                    <span class="stat-label">STATUS NOC</span>
+                    <span class="stat-value status-indicator-text status-normal" id="header-status-indicator">
+                        <i class="fa-solid fa-circle-check"></i> OPERACIONAL
+                    </span>
+                </div>
+                <div class="stat-mini-card" id="mini-card-clock">
+                    <span class="stat-label">TIME (LOCAL / UTC)</span>
+                    <span class="stat-value font-mono" id="noc-digital-clock">00:00:00</span>
+                </div>
+            </div>
+
+            <div class="user-info-area" id="user-info-area">
+                <a href="/admin.html" class="btn-admin-link hidden" id="btn-admin-link" title="Painel Administrativo">
+                    <i class="fa-solid fa-gear"></i> Admin
+                </a>
+                <div class="user-avatar" id="user-avatar">--</div>
+                <span class="user-name-text" id="user-name-text">Carregando...</span>
+                <button type="button" id="btn-logout" class="btn-logout" title="Sair do sistema">
+                    <i class="fa-solid fa-right-from-bracket"></i> Sair
+                </button>
+            </div>
+        </header>
+
+        <!-- MAIN DASHBOARD CONTENT -->
+        <main class="noc-content-grid" id="noc-printable-area">
+            
+            <!-- SECTION 1: GENERAL INFO (Analyst, Date, Shift) -->
+            <section class="glass-panel info-section" id="section-general-info">
+                <div class="panel-header">
+                    <i class="fa-solid fa-user-shield panel-icon"></i>
+                    <h2>Informações do Plantão</h2>
+                </div>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="input-analyst-name">Analista Responsável</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-user input-icon"></i>
+                            <input type="text" id="input-analyst-name" placeholder="Nome do Analista" readonly>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="input-report-date">Data do Relatório</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-calendar-day input-icon"></i>
+                            <input type="date" id="input-report-date" readonly>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="select-noc-shift">Turno de Trabalho</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-clock input-icon"></i>
+                            <select id="select-noc-shift">
+                                <option value="" disabled selected>Selecione o Turno</option>
+                                <option value="1">1º Turno (06:00 - 14:00)</option>
+                                <option value="2">2º Turno (14:00 - 22:00)</option>
+                                <option value="3">3º Turno (22:00 - 06:00)</option>
+                                <option value="comercial">Horário Comercial (08:00 - 18:00)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group status-selector-group">
+                        <label>Status Geral do Turno</label>
+                        <div class="status-options">
+                            <label class="status-option-btn normal active" id="lbl-status-normal">
+                                <input type="radio" name="overall-status" id="radio-status-normal" value="normal" checked>
+                                <i class="fa-solid fa-circle-check"></i> Normal
+                            </label>
+                            <label class="status-option-btn warning" id="lbl-status-warning">
+                                <input type="radio" name="overall-status" id="radio-status-warning" value="warning">
+                                <i class="fa-solid fa-triangle-exclamation"></i> Atenção
+                            </label>
+                            <label class="status-option-btn critical" id="lbl-status-critical">
+                                <input type="radio" name="overall-status" id="radio-status-critical" value="critical">
+                                <i class="fa-solid fa-circle-exclamation pulse"></i> Crítico
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 2: DYNAMIC ACTIVITIES -->
+            <section class="glass-panel activities-section" id="section-activities">
+                <div class="panel-header">
+                    <i class="fa-solid fa-list-check panel-icon"></i>
+                    <h2>Registro de Atividades</h2>
+                    <span class="badge" id="activity-counter">0 Atividades</span>
+                </div>
+
+                <!-- Form to Add Activity -->
+                <div class="activity-form-container no-print" id="activity-builder-form">
+                    <div class="activity-inputs">
+                        <div class="form-group flex-2">
+                            <label for="input-act-desc">Descrição da Atividade</label>
+                            <div class="input-wrapper">
+                                <i class="fa-solid fa-pen-to-square input-icon"></i>
+                                <input type="text" id="input-act-desc" placeholder="Ex: Reinicialização do link principal de SP / Backup concluído...">
+                            </div>
+                        </div>
+
+                        <div class="form-group flex-1">
+                            <label for="input-act-time">Horário</label>
+                            <div class="input-wrapper">
+                                <i class="fa-regular fa-clock input-icon"></i>
+                                <input type="time" id="input-act-time">
+                            </div>
+                        </div>
+
+                        <div class="form-group flex-1">
+                            <label for="select-act-category">Categoria</label>
+                            <div class="input-wrapper">
+                                <i class="fa-solid fa-tags input-icon"></i>
+                                <select id="select-act-category">
+                                    <option value="monitoramento">Monitoração</option>
+                                    <option value="incidente">Incidente</option>
+                                    <option value="mudanca">Mudança (GMUD)</option>
+                                    <option value="backup">Backup / Rotina</option>
+                                    <option value="outro">Outro</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group flex-1">
+                            <label for="select-act-status">Status</label>
+                            <div class="input-wrapper">
+                                <i class="fa-solid fa-circle-info input-icon"></i>
+                                <select id="select-act-status">
+                                    <option value="concluido">Concluído</option>
+                                    <option value="em-andamento">Em Andamento</option>
+                                    <option value="pendente">Pendente</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group flex-align-end">
+                            <button type="button" id="btn-add-activity" class="btn-primary">
+                                <i class="fa-solid fa-plus"></i> Adicionar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activities List / Table -->
+                <div class="activities-table-wrapper">
+                    <table class="activities-table" id="table-activities-list">
+                        <thead>
+                            <tr>
+                                <th style="width: 10%">Horário</th>
+                                <th style="width: 15%">Categoria</th>
+                                <th style="width: 50%">Descrição</th>
+                                <th style="width: 15%">Status</th>
+                                <th style="width: 10%" class="no-print">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-activities-rows">
+                            <!-- Rows added dynamically via JS -->
+                            <tr id="empty-state-row">
+                                <td colspan="5" class="empty-state">
+                                    <i class="fa-solid fa-chart-line"></i>
+                                    Nenhuma atividade registrada neste turno.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- SECTION 3: MY PAST REPORTS -->
+            <section class="glass-panel my-reports-section no-print" id="section-my-reports">
+                <div class="panel-header">
+                    <i class="fa-solid fa-clock-rotate-left panel-icon"></i>
+                    <h2>Meus Relatórios Anteriores</h2>
+                    <span class="badge" id="my-reports-counter">0 Relatórios</span>
+                </div>
+
+                <div class="activities-table-wrapper">
+                    <table class="activities-table reports-history-table" id="table-my-reports">
+                        <thead>
+                            <tr>
+                                <th style="width: 15%">Data</th>
+                                <th style="width: 20%">Turno</th>
+                                <th style="width: 15%">Status</th>
+                                <th style="width: 15%">Atividades</th>
+                                <th style="width: 35%">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-my-reports-rows">
+                            <tr id="my-reports-empty-state">
+                                <td colspan="5" class="empty-state">
+                                    <i class="fa-solid fa-folder-open"></i>
+                                    Nenhum relatório anterior encontrado.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+
+        <!-- CONTROLS BAR -->
+        <footer class="noc-footer-controls glass-panel" id="noc-footer-panel">
+            <div class="auto-save-status" id="container-autosave-indicator">
+                <span class="indicator-dot blinking" id="autosave-dot"></span>
+                <span id="text-autosave-status">Salvamento automático ativo</span>
+            </div>
+            
+            <div class="action-buttons">
+                <button type="button" id="btn-clear-report" class="btn-danger">
+                    <i class="fa-solid fa-trash-can"></i> Limpar Dados
+                </button>
+                <button type="button" id="btn-print-report" class="btn-secondary">
+                    <i class="fa-solid fa-print"></i> Imprimir / PDF Nativo
+                </button>
+                <button type="button" id="btn-export-pdf" class="btn-success">
+                    <i class="fa-solid fa-file-pdf"></i> Exportar PDF (Download)
+                </button>
+            </div>
+        </footer>
+    </div>
+
+    <!-- CUSTOM DIALOG FOR CLEAR DATA CONFIRMATION -->
+    <div class="custom-dialog-overlay" id="dialog-confirm-clear">
+        <div class="custom-dialog-box glass-panel">
+            <h3><i class="fa-solid fa-circle-question warning-color"></i> Limpar Relatório?</h3>
+            <p>Você tem certeza que deseja limpar todos os dados do relatório atual? Essa ação não pode ser desfeita e apagará o cache local.</p>
+            <div class="dialog-actions">
+                <button type="button" id="btn-cancel-clear" class="btn-secondary">Cancelar</button>
+                <button type="button" id="btn-confirm-clear" class="btn-danger">Sim, Limpar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
