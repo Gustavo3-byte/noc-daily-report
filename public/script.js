@@ -522,7 +522,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function loadReportIntoForm(report) {
         appState.currentReportId = report.id;
-        appState.reportDate = report.report_date || report.reportDate || appState.reportDate;
+        const rawDate = report.report_date || report.reportDate || appState.reportDate;
+        appState.reportDate = rawDate ? rawDate.toString().substring(0, 10) : appState.reportDate;
         appState.shift = report.shift || '';
         appState.overallStatus = report.overall_status || report.overallStatus || 'normal';
         appState.activities = report.activities || [];
@@ -584,9 +585,10 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        const rawPdfDate = report.report_date || report.reportDate || '';
         const pdfState = {
             analystName: appState.analystName,
-            reportDate: report.report_date || report.reportDate || '',
+            reportDate: rawPdfDate ? rawPdfDate.toString().substring(0, 10) : '',
             shift: report.shift || '',
             overallStatus: report.overall_status || report.overallStatus || 'normal',
             activities: report.activities || []
