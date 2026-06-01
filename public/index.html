@@ -63,7 +63,7 @@
             <section class="glass-panel info-section" id="section-general-info">
                 <div class="panel-header">
                     <i class="fa-solid fa-user-shield panel-icon"></i>
-                    <h2>Informações do Plantão</h2>
+                    <h2>Relatório do Turno</h2>
                 </div>
                 
                 <div class="form-grid">
@@ -87,13 +87,12 @@
                         <label for="select-noc-shift">Turno de Trabalho</label>
                         <div class="input-wrapper">
                             <i class="fa-solid fa-clock input-icon"></i>
-                            <select id="select-noc-shift">
-                                <option value="" disabled selected>Selecione o Turno</option>
-                                <option value="1">1º Turno (06:00 - 14:00)</option>
-                                <option value="2">2º Turno (14:00 - 22:00)</option>
-                                <option value="3">3º Turno (22:00 - 06:00)</option>
-                                <option value="comercial">Horário Comercial (08:00 - 18:00)</option>
-                            </select>
+                             <select id="select-noc-shift">
+                                 <option value="" disabled selected>Selecione o Turno</option>
+                                 <option value="07-17">07:00 às 17:00</option>
+                                 <option value="08-18">08:00 às 18:00</option>
+                                 <option value="09-19">09:00 às 19:00</option>
+                             </select>
                         </div>
                     </div>
 
@@ -149,11 +148,11 @@
                             <div class="input-wrapper">
                                 <i class="fa-solid fa-tags input-icon"></i>
                                 <select id="select-act-category">
-                                    <option value="monitoramento">Monitoração</option>
-                                    <option value="incidente">Incidente</option>
-                                    <option value="mudanca">Mudança (GMUD)</option>
-                                    <option value="backup">Backup / Rotina</option>
-                                    <option value="outro">Outro</option>
+                                    <option value="monitoramento">Monitoramento</option>
+                                    <option value="suporte">Suporte</option>
+                                    <option value="n3">N3</option>
+                                    <option value="rotina">Rotina</option>
+                                    <option value="flow">Flow</option>
                                 </select>
                             </div>
                         </div>
