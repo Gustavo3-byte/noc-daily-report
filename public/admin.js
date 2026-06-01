@@ -204,7 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'same-origin',
-                body: JSON.stringify({ username, password, fullName, role })
+                body: JSON.stringify({ username, password, full_name: fullName, role })
             });
 
             const data = await res.json();
@@ -217,11 +217,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 selectNewRole.value = 'analyst';
                 loadUsers();
             } else {
-                showUserFeedback(data.message || 'Erro ao criar usuário.', true);
+                showUserFeedback(data.error || 'Erro ao criar usuário.', true);
             }
         } catch (err) {
             console.error('Erro ao criar usuário:', err);
-            showUserFeedback('Erro de conexão com o servidor.', true);
+            showUserFeedback(`Erro de conexão com o servidor: ${err.message}`, true);
         } finally {
             btnCreateUser.disabled = false;
             btnCreateUser.innerHTML = '<i class="fa-solid fa-user-plus"></i> Criar Usuário';
@@ -238,11 +238,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 loadUsers();
             } else {
                 const data = await res.json();
-                alert(data.message || 'Erro ao excluir usuário.');
+                showUserFeedback(data.error || 'Erro ao excluir usuário.', true);
             }
         } catch (err) {
             console.error('Erro ao excluir usuário:', err);
-            alert('Erro de conexão com o servidor.');
+            showUserFeedback(`Erro de conexão com o servidor: ${err.message}`, true);
         }
     }
 
