@@ -840,9 +840,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Mapear status para label, cor e ícone
         const statusConfig = {
-            'concluido':     { label: 'Concluído',    icon: '✅', color: '#00ff87' },
-            'em-andamento':  { label: 'Em Andamento', icon: '🔄', color: '#ffb800' },
-            'pendente':      { label: 'Pendente',     icon: '⏳', color: '#ff4b2b' }
+            'concluido':     { label: 'Concluído',    icon: '✓', color: '#00ff87' },
+            'em-andamento':  { label: 'Em Andamento', icon: '↻', color: '#ffb800' },
+            'pendente':      { label: 'Pendente',     icon: '■', color: '#ff4b2b' }
         };
 
         // Construir linhas da tabela com TODAS as atividades
