@@ -104,22 +104,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- RELÓGIO DINÂMICO NOC (LOCAL / UTC) ---
+    // --- RELÓGIO DINÂMICO NOC (LOCAL) ---
     function setupClock() {
         function updateTime() {
             const now = new Date();
-            
-            // Hora Local
-            const localHours = String(now.getHours()).padStart(2, '0');
-            const localMinutes = String(now.getMinutes()).padStart(2, '0');
-            const localSeconds = String(now.getSeconds()).padStart(2, '0');
-            
-            // Hora UTC
-            const utcHours = String(now.getUTCHours()).padStart(2, '0');
-            const utcMinutes = String(now.getUTCMinutes()).padStart(2, '0');
-            const utcSeconds = String(now.getUTCSeconds()).padStart(2, '0');
-
-            nocDigitalClock.textContent = `${localHours}:${localMinutes}:${localSeconds} LST | ${utcHours}:${utcMinutes}:${utcSeconds} UTC`;
+            const h = String(now.getHours()).padStart(2, '0');
+            const m = String(now.getMinutes()).padStart(2, '0');
+            const s = String(now.getSeconds()).padStart(2, '0');
+            nocDigitalClock.textContent = `${h}:${m}:${s}`;
         }
         updateTime();
         setInterval(updateTime, 1000);

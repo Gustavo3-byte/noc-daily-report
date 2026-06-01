@@ -320,6 +320,19 @@ select {
     padding-right: 40px;
 }
 
+/* Dropdown options */
+select option {
+    background-color: #0d1f3c;
+    color: #f1f5f9;
+    padding: 10px;
+}
+
+select option:hover,
+select option:checked {
+    background-color: #1a3a6e;
+    color: #00f2fe;
+}
+
 /* Estado de Foco */
 input:focus,
 select:focus,
