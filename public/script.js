@@ -337,11 +337,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Categoria Badge
             let categoryText = act.category;
-            if (act.category === 'monitoramento') categoryText = 'Monitoração';
-            else if (act.category === 'incidente') categoryText = 'Incidente';
-            else if (act.category === 'mudanca') categoryText = 'Mudança';
-            else if (act.category === 'backup') categoryText = 'Backup';
-            else if (act.category === 'outro') categoryText = 'Outro';
+            if (act.category === 'monitoramento') categoryText = 'Monitoramento';
+            else if (act.category === 'suporte') categoryText = 'Suporte';
+            else if (act.category === 'n3') categoryText = 'N3';
+            else if (act.category === 'rotina') categoryText = 'Rotina';
+            else if (act.category === 'flow') categoryText = 'Flow';
 
             // Status Badge/Text
             let statusText = act.status;
