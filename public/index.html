@@ -248,6 +248,9 @@
                 <button type="button" id="btn-clear-report" class="btn-danger">
                     <i class="fa-solid fa-trash-can"></i> Limpar Dados
                 </button>
+                <button type="button" id="btn-weekly-report" class="btn-weekly">
+                    <i class="fa-solid fa-chart-pie"></i> Resumo Semanal
+                </button>
                 <button type="button" id="btn-print-report" class="btn-secondary">
                     <i class="fa-solid fa-print"></i> Imprimir / PDF Nativo
                 </button>
@@ -266,6 +269,102 @@
             <div class="dialog-actions">
                 <button type="button" id="btn-cancel-clear" class="btn-secondary">Cancelar</button>
                 <button type="button" id="btn-confirm-clear" class="btn-danger">Sim, Limpar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: RESUMO SEMANAL -->
+    <div class="modal-overlay" id="modal-weekly-report" style="display:none;">
+        <div class="modal-content glass-panel weekly-modal-content" id="modal-weekly-body">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-chart-pie"></i> Resumo Semanal de Atividades</h3>
+                <button type="button" id="btn-close-weekly-modal" class="btn-icon-danger" title="Fechar">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Seletor de semana -->
+            <div class="weekly-controls">
+                <div class="weekly-week-selector">
+                    <button type="button" id="btn-week-prev" class="btn-week-nav"><i class="fa-solid fa-chevron-left"></i></button>
+                    <span id="weekly-range-label" class="weekly-range-text">Carregando...</span>
+                    <button type="button" id="btn-week-next" class="btn-week-nav"><i class="fa-solid fa-chevron-right"></i></button>
+                </div>
+                <button type="button" id="btn-export-weekly-pdf" class="btn-success" style="padding:8px 18px;font-size:13px;">
+                    <i class="fa-solid fa-file-pdf"></i> Baixar PDF
+                </button>
+            </div>
+
+            <!-- Cards de resumo -->
+            <div class="weekly-cards" id="weekly-summary-cards">
+                <div class="weekly-stat-card">
+                    <div class="wsc-icon"><i class="fa-solid fa-list-check"></i></div>
+                    <div class="wsc-value" id="wsc-total">0</div>
+                    <div class="wsc-label">Total de Atividades</div>
+                </div>
+                <div class="weekly-stat-card">
+                    <div class="wsc-icon" style="color:var(--color-success)"><i class="fa-solid fa-circle-check"></i></div>
+                    <div class="wsc-value" id="wsc-concluido">0</div>
+                    <div class="wsc-label">Concluídas</div>
+                </div>
+                <div class="weekly-stat-card">
+                    <div class="wsc-icon" style="color:var(--color-warning)"><i class="fa-solid fa-clock"></i></div>
+                    <div class="wsc-value" id="wsc-andamento">0</div>
+                    <div class="wsc-label">Em Andamento</div>
+                </div>
+                <div class="weekly-stat-card">
+                    <div class="wsc-icon" style="color:var(--color-danger)"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    <div class="wsc-value" id="wsc-pendente">0</div>
+                    <div class="wsc-label">Pendentes</div>
+                </div>
+                <div class="weekly-stat-card">
+                    <div class="wsc-icon" style="color:var(--color-cyan)"><i class="fa-solid fa-file-lines"></i></div>
+                    <div class="wsc-value" id="wsc-relatorios">0</div>
+                    <div class="wsc-label">Relatórios</div>
+                </div>
+            </div>
+
+            <!-- Gráfico + IA -->
+            <div class="weekly-main-grid">
+                <!-- Gráfico pizza -->
+                <div class="weekly-chart-box glass-panel">
+                    <div class="weekly-section-title"><i class="fa-solid fa-chart-pie"></i> Atividades por Categoria</div>
+                    <div class="weekly-chart-wrapper">
+                        <canvas id="weekly-pie-chart" width="280" height="280"></canvas>
+                    </div>
+                    <div id="weekly-pie-legend" class="weekly-legend"></div>
+                </div>
+
+                <!-- Resumo IA -->
+                <div class="weekly-ai-box glass-panel">
+                    <div class="weekly-section-title"><i class="fa-solid fa-robot"></i> Análise Inteligente da Semana</div>
+                    <div id="weekly-ai-content" class="weekly-ai-text">
+                        <div class="weekly-ai-loading" id="weekly-ai-loading">
+                            <i class="fa-solid fa-spinner fa-spin"></i>
+                            <span>Gerando análise com IA...</span>
+                        </div>
+                        <div id="weekly-ai-result" class="hidden"></div>
+                    </div>
+                    <button type="button" id="btn-regenerate-ai" class="btn-secondary" style="margin-top:12px;padding:7px 16px;font-size:12px;display:none;">
+                        <i class="fa-solid fa-rotate-right"></i> Gerar novamente
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tabela de relatórios da semana -->
+            <div class="weekly-reports-list glass-panel" id="weekly-reports-table-wrapper">
+                <div class="weekly-section-title"><i class="fa-solid fa-calendar-week"></i> Relatórios da Semana</div>
+                <table class="activities-table" id="weekly-reports-table">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Turno</th>
+                            <th>Status</th>
+                            <th>Atividades</th>
+                        </tr>
+                    </thead>
+                    <tbody id="weekly-reports-tbody"></tbody>
+                </table>
             </div>
         </div>
     </div>
