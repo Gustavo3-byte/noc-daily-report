@@ -1436,3 +1436,123 @@ button {
     pointer-events: none;
     background: #040814;
 }
+/* ============================================================
+   RESUMO SEMANAL — MODAL E COMPONENTES
+   ============================================================ */
+
+/* Botão Resumo Semanal */
+.btn-weekly {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 20px; border: none; border-radius: 10px; cursor: pointer;
+    font-family: inherit; font-size: 13px; font-weight: 600; letter-spacing: 0.3px;
+    background: linear-gradient(135deg, #3b0764, #6d28d9);
+    color: #fff; transition: opacity 0.2s, transform 0.1s;
+    box-shadow: 0 0 16px rgba(109,40,217,0.4);
+}
+.btn-weekly:hover { opacity: 0.88; transform: translateY(-1px); }
+
+/* Modal overlay */
+#modal-weekly-report {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000; padding: 16px; backdrop-filter: blur(4px);
+}
+
+/* Modal box */
+.weekly-modal-content {
+    width: 100%; max-width: 900px; max-height: 90vh;
+    overflow-y: auto; border-radius: 18px; padding: 28px;
+    background: rgba(8, 13, 26, 0.97);
+    border: 1px solid rgba(0,242,254,0.15);
+    box-shadow: 0 0 60px rgba(0,242,254,0.08);
+    scrollbar-width: thin; scrollbar-color: rgba(0,242,254,0.2) transparent;
+}
+
+/* Controles topo */
+.weekly-controls {
+    display: flex; justify-content: space-between; align-items: center;
+    margin: 16px 0 20px; gap: 12px; flex-wrap: wrap;
+}
+.weekly-week-selector {
+    display: flex; align-items: center; gap: 12px;
+}
+.btn-week-nav {
+    background: rgba(0,242,254,0.08); border: 1px solid rgba(0,242,254,0.2);
+    color: #00f2fe; border-radius: 8px; width: 34px; height: 34px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s;
+}
+.btn-week-nav:hover { background: rgba(0,242,254,0.18); }
+.weekly-range-text {
+    font-size: 14px; font-weight: 700; color: #e8eaf0; white-space: nowrap;
+}
+
+/* Cards de stats */
+.weekly-cards {
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    gap: 12px; margin-bottom: 20px;
+}
+@media (max-width: 640px) { .weekly-cards { grid-template-columns: repeat(3, 1fr); } }
+.weekly-stat-card {
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px; padding: 16px; text-align: center;
+    transition: border-color 0.2s;
+}
+.weekly-stat-card:hover { border-color: rgba(0,242,254,0.25); }
+.wsc-icon { font-size: 20px; color: var(--color-cyan); margin-bottom: 8px; }
+.wsc-value { font-size: 30px; font-weight: 800; color: #e8eaf0; line-height: 1; }
+.wsc-label { font-size: 10px; color: rgba(255,255,255,0.45); margin-top: 6px;
+    text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* Grid principal chart + IA */
+.weekly-main-grid {
+    display: grid; grid-template-columns: 300px 1fr;
+    gap: 16px; margin-bottom: 16px;
+}
+@media (max-width: 700px) { .weekly-main-grid { grid-template-columns: 1fr; } }
+
+.weekly-chart-box, .weekly-ai-box {
+    border-radius: 14px; padding: 20px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+}
+.weekly-section-title {
+    font-size: 12px; font-weight: 700; color: #00f2fe;
+    text-transform: uppercase; letter-spacing: 1px;
+    margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+}
+.weekly-chart-wrapper { display: flex; justify-content: center; margin-bottom: 14px; }
+#weekly-pie-chart { max-width: 220px; max-height: 220px; }
+
+/* Legenda do gráfico */
+.weekly-legend { display: flex; flex-direction: column; gap: 7px; }
+.weekly-legend-item {
+    display: flex; align-items: center; gap: 8px; font-size: 12px; color: rgba(255,255,255,0.8);
+}
+.weekly-legend-dot {
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+}
+.weekly-legend-label { flex: 1; }
+.weekly-legend-count { font-weight: 700; color: #e8eaf0; }
+
+/* Caixa de texto da IA */
+.weekly-ai-text {
+    font-size: 13px; line-height: 1.7; color: rgba(255,255,255,0.8);
+    max-height: 280px; overflow-y: auto;
+    scrollbar-width: thin; scrollbar-color: rgba(0,242,254,0.2) transparent;
+}
+.weekly-ai-loading {
+    display: flex; align-items: center; gap: 10px;
+    color: rgba(255,255,255,0.5); font-size: 13px; padding: 20px 0;
+}
+#weekly-ai-result p { margin-bottom: 10px; }
+#weekly-ai-result strong { color: #00f2fe; }
+#weekly-ai-result ul { padding-left: 18px; margin: 6px 0 10px; }
+#weekly-ai-result li { margin-bottom: 5px; }
+
+/* Tabela de relatórios da semana */
+.weekly-reports-list {
+    border-radius: 14px; padding: 20px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+}
