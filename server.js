@@ -57,7 +57,13 @@ app.use(
           'https://ka-f.fontawesome.com',
         ],
         imgSrc: ["'self'", 'data:'],
-        connectSrc: ["'self'", 'https://ka-f.fontawesome.com'],
+        connectSrc: [
+          "'self'",
+          'https://ka-f.fontawesome.com',
+          'https://api.anthropic.com',
+          'https://cdnjs.cloudflare.com',
+        ],
+        workerSrc: ["'self'", 'blob:'],
       },
     },
   })
@@ -116,10 +122,6 @@ app.use('/api/admin', requireAuth, requireAdmin, adminRoutes);
 // Rotas de páginas protegidas
 // ============================================
 
-/**
- * GET /
- * Redireciona para login se não autenticado, senão serve index.html.
- */
 app.get('/', (req, res) => {
   if (!req.session || !req.session.userId) {
     return res.redirect('/login.html');
@@ -127,10 +129,6 @@ app.get('/', (req, res) => {
   return res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-/**
- * GET /admin
- * Redireciona para login se não autenticado ou não é admin.
- */
 app.get('/admin', (req, res) => {
   if (!req.session || !req.session.userId) {
     return res.redirect('/login.html');
@@ -149,13 +147,11 @@ const bcrypt = require('bcryptjs');
 
 async function autoSeed() {
   try {
-    // 1. Executar schema.sql para criar tabelas
     const schemaPath = path.join(__dirname, 'db', 'schema.sql');
     const schemaSql = fs.readFileSync(schemaPath, 'utf-8');
     await pool.query(schemaSql);
     console.log('✅ Tabelas verificadas/criadas com sucesso.');
 
-    // 2. Criar admin padrão se não existir nenhum usuário
     const result = await pool.query('SELECT COUNT(*) FROM users');
     const userCount = parseInt(result.rows[0].count, 10);
 
