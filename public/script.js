@@ -1242,4 +1242,430 @@ document.addEventListener('DOMContentLoaded', () => {
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#039;');
     }
+
+    // =========================================================================
+    // RESUMO SEMANAL
+    // =========================================================================
+
+    const modalWeekly        = document.getElementById('modal-weekly-report');
+    const btnWeeklyReport    = document.getElementById('btn-weekly-report');
+    const btnCloseWeekly     = document.getElementById('btn-close-weekly-modal');
+    const btnWeekPrev        = document.getElementById('btn-week-prev');
+    const btnWeekNext        = document.getElementById('btn-week-next');
+    const weeklyRangeLabel   = document.getElementById('weekly-range-label');
+    const btnExportWeeklyPdf = document.getElementById('btn-export-weekly-pdf');
+    const btnRegenerateAi    = document.getElementById('btn-regenerate-ai');
+
+    let weeklyCurrentMonday = getMonday(new Date());
+    let weeklyReports       = [];
+    let weeklyPieChart      = null;
+
+    // Abre modal
+    btnWeeklyReport.addEventListener('click', () => {
+        weeklyCurrentMonday = getMonday(new Date());
+        modalWeekly.style.display = 'flex';
+        loadWeeklyData();
+    });
+
+    // Fecha modal
+    btnCloseWeekly.addEventListener('click', () => { modalWeekly.style.display = 'none'; });
+    modalWeekly.addEventListener('click', e => { if (e.target === modalWeekly) modalWeekly.style.display = 'none'; });
+
+    // Navegar semanas
+    btnWeekPrev.addEventListener('click', () => {
+        weeklyCurrentMonday = new Date(weeklyCurrentMonday);
+        weeklyCurrentMonday.setDate(weeklyCurrentMonday.getDate() - 7);
+        loadWeeklyData();
+    });
+    btnWeekNext.addEventListener('click', () => {
+        weeklyCurrentMonday = new Date(weeklyCurrentMonday);
+        weeklyCurrentMonday.setDate(weeklyCurrentMonday.getDate() + 7);
+        loadWeeklyData();
+    });
+
+    // Regenerar IA
+    btnRegenerateAi.addEventListener('click', () => generateWeeklyAI(weeklyReports));
+
+    // Exportar PDF semanal
+    btnExportWeeklyPdf.addEventListener('click', exportWeeklyPDF);
+
+    function getMonday(date) {
+        const d = new Date(date);
+        const day = d.getDay();
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+        d.setDate(diff);
+        d.setHours(0, 0, 0, 0);
+        return d;
+    }
+
+    function formatDateBR(dateStr) {
+        if (!dateStr) return '—';
+        const d = new Date(dateStr + 'T12:00:00');
+        return d.toLocaleDateString('pt-BR');
+    }
+
+    async function loadWeeklyData() {
+        // Calcular range da semana
+        const monday = new Date(weeklyCurrentMonday);
+        const sunday = new Date(monday);
+        sunday.setDate(sunday.getDate() + 6);
+
+        weeklyRangeLabel.textContent = `${monday.toLocaleDateString('pt-BR')} — ${sunday.toLocaleDateString('pt-BR')}`;
+
+        // Buscar todos os relatórios
+        try {
+            const res = await fetch('/api/reports', { credentials: 'same-origin' });
+            if (!res.ok) throw new Error('Falha');
+            const data = await res.json();
+            const all = data.reports || [];
+
+            // Filtrar pela semana
+            weeklyReports = all.filter(r => {
+                const raw = r.report_date || r.reportDate || '';
+                const dateStr = raw.toString().substring(0, 10);
+                if (!dateStr) return false;
+                const d = new Date(dateStr + 'T12:00:00');
+                return d >= monday && d <= sunday;
+            });
+
+            renderWeeklyData(weeklyReports);
+            generateWeeklyAI(weeklyReports);
+
+        } catch (err) {
+            console.error('Erro ao carregar dados semanais:', err);
+        }
+    }
+
+    function renderWeeklyData(reports) {
+        // Agregar atividades
+        let total = 0, concluido = 0, andamento = 0, pendente = 0;
+        const catCount = { monitoramento: 0, suporte: 0, n3: 0, rotina: 0, flow: 0 };
+
+        reports.forEach(r => {
+            const acts = r.activities || [];
+            acts.forEach(a => {
+                total++;
+                const s = (a.status || '').toLowerCase();
+                if (s === 'concluido' || s === 'concluído') concluido++;
+                else if (s === 'em-andamento' || s === 'em andamento') andamento++;
+                else pendente++;
+
+                const cat = (a.category || a.categoria || '').toLowerCase();
+                if (catCount[cat] !== undefined) catCount[cat]++;
+                else catCount['rotina']++;
+            });
+        });
+
+        // Cards
+        document.getElementById('wsc-total').textContent      = total;
+        document.getElementById('wsc-concluido').textContent  = concluido;
+        document.getElementById('wsc-andamento').textContent  = andamento;
+        document.getElementById('wsc-pendente').textContent   = pendente;
+        document.getElementById('wsc-relatorios').textContent = reports.length;
+
+        // Gráfico pizza
+        drawPieChart(catCount, total);
+
+        // Tabela
+        const tbody = document.getElementById('weekly-reports-tbody');
+        if (reports.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" class="empty-state"><i class="fa-solid fa-folder-open"></i> Nenhum relatório nesta semana.</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = '';
+        reports.forEach(r => {
+            const dateStr = (r.report_date || r.reportDate || '').toString().substring(0, 10);
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="font-mono">${formatDateBR(dateStr)}</td>
+                <td>${escapeHTML(getShiftLabel(r.shift))}</td>
+                <td>${getStatusBadgeHtml(r.overall_status || r.overallStatus || 'normal')}</td>
+                <td class="font-mono">${(r.activities || []).length}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    const CAT_COLORS = {
+        monitoramento: '#00f2fe',
+        suporte:       '#4facfe',
+        n3:            '#a855f7',
+        rotina:        '#34d399',
+        flow:          '#fbbf24',
+    };
+    const CAT_LABELS = {
+        monitoramento: 'Monitoramento',
+        suporte:       'Suporte',
+        n3:            'N3',
+        rotina:        'Rotina',
+        flow:          'Flow',
+    };
+
+    function drawPieChart(catCount, total) {
+        const canvas = document.getElementById('weekly-pie-chart');
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const categories = Object.keys(catCount).filter(k => catCount[k] > 0);
+        const legend = document.getElementById('weekly-pie-legend');
+        legend.innerHTML = '';
+
+        if (total === 0 || categories.length === 0) {
+            ctx.fillStyle = 'rgba(255,255,255,0.1)';
+            ctx.beginPath();
+            ctx.arc(140, 140, 110, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = 'rgba(255,255,255,0.4)';
+            ctx.font = '14px Inter';
+            ctx.textAlign = 'center';
+            ctx.fillText('Sem dados', 140, 148);
+            return;
+        }
+
+        const cx = 140, cy = 140, r = 110, rInner = 58;
+        let startAngle = -Math.PI / 2;
+
+        categories.forEach(cat => {
+            const slice = (catCount[cat] / total) * Math.PI * 2;
+            const color = CAT_COLORS[cat] || '#64748b';
+
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.arc(cx, cy, r, startAngle, startAngle + slice);
+            ctx.closePath();
+            ctx.fillStyle = color;
+            ctx.fill();
+
+            // Borda
+            ctx.strokeStyle = '#040814';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Percentual no slice
+            if (slice > 0.3) {
+                const midAngle = startAngle + slice / 2;
+                const tx = cx + (r * 0.68) * Math.cos(midAngle);
+                const ty = cy + (r * 0.68) * Math.sin(midAngle);
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 11px Inter';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`${Math.round((catCount[cat] / total) * 100)}%`, tx, ty);
+            }
+
+            startAngle += slice;
+
+            // Legenda
+            const item = document.createElement('div');
+            item.className = 'weekly-legend-item';
+            item.innerHTML = `
+                <span class="weekly-legend-dot" style="background:${color}"></span>
+                <span class="weekly-legend-label">${CAT_LABELS[cat]}</span>
+                <span class="weekly-legend-count">${catCount[cat]}</span>
+            `;
+            legend.appendChild(item);
+        });
+
+        // Buraco central (donut)
+        ctx.beginPath();
+        ctx.arc(cx, cy, rInner, 0, Math.PI * 2);
+        ctx.fillStyle = '#080d1a';
+        ctx.fill();
+
+        // Texto central
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.font = 'bold 28px Inter';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(total, cx, cy - 8);
+        ctx.font = '11px Inter';
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.fillText('atividades', cx, cy + 14);
+    }
+
+    async function generateWeeklyAI(reports) {
+        const loadingEl = document.getElementById('weekly-ai-loading');
+        const resultEl  = document.getElementById('weekly-ai-result');
+        btnRegenerateAi.style.display = 'none';
+        loadingEl.classList.remove('hidden');
+        resultEl.classList.add('hidden');
+        resultEl.innerHTML = '';
+
+        if (reports.length === 0) {
+            loadingEl.classList.add('hidden');
+            resultEl.classList.remove('hidden');
+            resultEl.innerHTML = '<p style="color:var(--color-muted);text-align:center;padding:20px;">Nenhum dado encontrado para esta semana.</p>';
+            btnRegenerateAi.style.display = 'block';
+            return;
+        }
+
+        // Montar resumo das atividades para o prompt
+        let allActs = [];
+        reports.forEach(r => {
+            const dateStr = (r.report_date || r.reportDate || '').toString().substring(0, 10);
+            (r.activities || []).forEach(a => {
+                allActs.push(`[${formatDateBR(dateStr)} | ${CAT_LABELS[a.category] || a.category || 'Geral'} | ${a.status}] ${a.description || a.descricao || ''}`);
+            });
+        });
+
+        const prompt = `Você é um analista sênior de NOC (Network Operations Center). Com base nas atividades da semana abaixo, gere um resumo executivo profissional em português brasileiro.
+
+ATIVIDADES DA SEMANA (${allActs.length} no total, ${reports.length} relatório(s)):
+${allActs.slice(0, 60).join('\n')}
+
+Gere o resumo com estas seções usando HTML simples (apenas <p>, <strong>, <ul>, <li>, sem markdown):
+1. <strong>Visão Geral</strong> — parágrafo resumindo o desempenho da semana
+2. <strong>Principais Focos</strong> — lista com as categorias mais ativas e o que foi realizado
+3. <strong>Pontos de Atenção</strong> — atividades pendentes ou em andamento que precisam de acompanhamento
+4. <strong>Conclusão</strong> — avaliação geral do período
+
+Seja objetivo, profissional e direto. Máximo 300 palavras.`;
+
+        try {
+            const res = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: 'claude-sonnet-4-20250514',
+                    max_tokens: 1000,
+                    messages: [{ role: 'user', content: prompt }]
+                })
+            });
+
+            const data = await res.json();
+            const text = data.content?.find(b => b.type === 'text')?.text || '';
+
+            loadingEl.classList.add('hidden');
+            resultEl.classList.remove('hidden');
+            resultEl.innerHTML = text || '<p>Não foi possível gerar a análise.</p>';
+            btnRegenerateAi.style.display = 'block';
+
+        } catch (err) {
+            console.error('Erro na API de IA:', err);
+            loadingEl.classList.add('hidden');
+            resultEl.classList.remove('hidden');
+            resultEl.innerHTML = '<p style="color:var(--color-danger)">Erro ao conectar com a IA. Verifique a conexão e tente novamente.</p>';
+            btnRegenerateAi.style.display = 'block';
+        }
+    }
+
+    async function exportWeeklyPDF() {
+        const originalText = btnExportWeeklyPdf.innerHTML;
+        btnExportWeeklyPdf.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gerando...';
+        btnExportWeeklyPdf.disabled = true;
+
+        try {
+            const monday = new Date(weeklyCurrentMonday);
+            const sunday = new Date(monday);
+            sunday.setDate(sunday.getDate() + 6);
+            const rangeText = `${monday.toLocaleDateString('pt-BR')} a ${sunday.toLocaleDateString('pt-BR')}`;
+
+            // Agregar dados
+            let total = 0, concluido = 0, andamento = 0, pendente = 0;
+            const catCount = { monitoramento: 0, suporte: 0, n3: 0, rotina: 0, flow: 0 };
+            weeklyReports.forEach(r => {
+                (r.activities || []).forEach(a => {
+                    total++;
+                    const s = (a.status || '').toLowerCase();
+                    if (s.includes('conclu')) concluido++;
+                    else if (s.includes('andamento')) andamento++;
+                    else pendente++;
+                    const cat = (a.category || a.categoria || '').toLowerCase();
+                    if (catCount[cat] !== undefined) catCount[cat]++;
+                    else catCount['rotina']++;
+                });
+            });
+
+            const aiText = document.getElementById('weekly-ai-result').innerHTML || 'Análise não disponível.';
+
+            // Gerar HTML do PDF
+            const catRows = Object.keys(catCount)
+                .filter(k => catCount[k] > 0)
+                .map(k => `<tr><td>${CAT_LABELS[k]}</td><td style="text-align:center;font-weight:700;color:${CAT_COLORS[k]}">${catCount[k]}</td><td style="text-align:center">${total > 0 ? Math.round((catCount[k]/total)*100) : 0}%</td></tr>`)
+                .join('');
+
+            const reportRows = weeklyReports.map(r => {
+                const dateStr = (r.report_date || r.reportDate || '').toString().substring(0, 10);
+                return `<tr>
+                    <td>${formatDateBR(dateStr)}</td>
+                    <td>${getShiftLabel(r.shift)}</td>
+                    <td>${r.overall_status || 'normal'}</td>
+                    <td style="text-align:center">${(r.activities||[]).length}</td>
+                </tr>`;
+            }).join('');
+
+            const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+<title>Resumo Semanal NOC - ${rangeText}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #040814; color: #e8eaf0; padding: 40px; }
+  .header { background: linear-gradient(135deg, #0a1628 0%, #1e3a5f 100%); border: 1px solid rgba(0,242,254,0.3); border-radius: 16px; padding: 32px; margin-bottom: 28px; display: flex; justify-content: space-between; align-items: center; }
+  .header h1 { font-size: 22px; font-weight: 800; color: #00f2fe; letter-spacing: 1px; }
+  .header .sub { font-size: 13px; color: rgba(255,255,255,0.55); margin-top: 4px; }
+  .header .range { font-size: 14px; color: rgba(255,255,255,0.8); font-weight: 600; }
+  .cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 28px; }
+  .card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 18px; text-align: center; }
+  .card .val { font-size: 32px; font-weight: 800; color: #00f2fe; }
+  .card .lbl { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .section { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+  .section-title { font-size: 13px; font-weight: 700; color: #00f2fe; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: rgba(0,242,254,0.08); color: #00f2fe; padding: 10px 14px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+  td { padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.05); color: rgba(255,255,255,0.85); }
+  tr:last-child td { border-bottom: none; }
+  .ai-section p { line-height: 1.7; margin-bottom: 10px; font-size: 14px; color: rgba(255,255,255,0.8); }
+  .ai-section strong { color: #00f2fe; }
+  .ai-section ul { padding-left: 20px; margin: 8px 0; }
+  .ai-section li { margin-bottom: 6px; font-size: 13px; color: rgba(255,255,255,0.75); line-height: 1.5; }
+  .footer { margin-top: 28px; text-align: center; font-size: 11px; color: rgba(255,255,255,0.3); }
+  .print-btn { display: block; margin: 24px auto; background: #00f2fe; color: #040814; border: none; border-radius: 10px; padding: 12px 32px; font-size: 14px; font-weight: 700; cursor: pointer; }
+  @media print { .no-print { display: none !important; } }
+</style></head><body>
+<div class="header">
+  <div>
+    <div class="sub">NOC — NETWORK OPERATIONS CENTER</div>
+    <h1>📊 RESUMO SEMANAL DE ATIVIDADES</h1>
+  </div>
+  <div class="range">📅 ${rangeText}</div>
+</div>
+<div class="cards">
+  <div class="card"><div class="val">${total}</div><div class="lbl">Total</div></div>
+  <div class="card"><div class="val" style="color:#34d399">${concluido}</div><div class="lbl">Concluídas</div></div>
+  <div class="card"><div class="val" style="color:#fbbf24">${andamento}</div><div class="lbl">Em Andamento</div></div>
+  <div class="card"><div class="val" style="color:#f87171">${pendente}</div><div class="lbl">Pendentes</div></div>
+  <div class="card"><div class="val" style="color:#a855f7">${weeklyReports.length}</div><div class="lbl">Relatórios</div></div>
+</div>
+<div class="section">
+  <div class="section-title">📊 Atividades por Categoria</div>
+  <table><thead><tr><th>Categoria</th><th style="text-align:center">Quantidade</th><th style="text-align:center">%</th></tr></thead>
+  <tbody>${catRows || '<tr><td colspan="3" style="text-align:center;opacity:0.5">Sem atividades</td></tr>'}</tbody></table>
+</div>
+<div class="section">
+  <div class="section-title">📅 Relatórios da Semana</div>
+  <table><thead><tr><th>Data</th><th>Turno</th><th>Status</th><th style="text-align:center">Atividades</th></tr></thead>
+  <tbody>${reportRows || '<tr><td colspan="4" style="text-align:center;opacity:0.5">Sem relatórios</td></tr>'}</tbody></table>
+</div>
+<div class="section ai-section">
+  <div class="section-title">🤖 Análise Inteligente da Semana</div>
+  ${aiText}
+</div>
+<div class="footer">Gerado em ${new Date().toLocaleString('pt-BR')} — NOC Report System — DOCUMENTO INTERNO</div>
+<div class="no-print" style="text-align:center;margin-top:24px;">
+  <button class="print-btn" onclick="window.print()">🖨️ Salvar como PDF / Imprimir</button>
+</div>
+</body></html>`;
+
+            const w = window.open('', '_blank');
+            w.document.write(html);
+            w.document.close();
+
+        } catch (err) {
+            console.error('Erro ao gerar PDF semanal:', err);
+            alert('Erro ao gerar PDF. Tente novamente.');
+        } finally {
+            btnExportWeeklyPdf.innerHTML = originalText;
+            btnExportWeeklyPdf.disabled = false;
+        }
+    }
+
 });
