@@ -529,7 +529,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const analystClean = pdfState.analystName.trim().replace(/\s+/g, '_') || 'sem_analista';
             const dateClean = pdfState.reportDate || 'sem_data';
             let shiftFile = 'sem_turno';
-            if (pdfState.shift === '1') shiftFile = 'Turno_1';
+            if (pdfState.shift === '07-17') shiftFile = '07-17';
+            else if (pdfState.shift === '08-18') shiftFile = '08-18';
+            else if (pdfState.shift === '09-19') shiftFile = '09-19';
+            else if (pdfState.shift === '1') shiftFile = 'Turno_1';
             else if (pdfState.shift === '2') shiftFile = 'Turno_2';
             else if (pdfState.shift === '3') shiftFile = 'Turno_3';
             else if (pdfState.shift === 'comercial') shiftFile = 'Comercial';
@@ -629,9 +632,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function buildPdfHtmlFromState(state, logoBase64, fundoBase64) {
-        const completedActivities = state.activities.filter(a => a.status === 'concluido');
-        const stats = { monitoramento: 0, incidente: 0, mudanca: 0, backup: 0, outro: 0 };
-        completedActivities.forEach(a => {
+        const allActivities = state.activities || [];
+        const stats = { monitoramento: 0, suporte: 0, n3: 0, rotina: 0, flow: 0 };
+        allActivities.forEach(a => {
             if (stats.hasOwnProperty(a.category)) stats[a.category]++;
         });
 
@@ -641,7 +644,10 @@ document.addEventListener('DOMContentLoaded', () => {
             : 'Não informada';
 
         let shiftLabel = 'Não selecionado';
-        if (state.shift === '1') shiftLabel = '1º Turno (06:00 - 14:00)';
+        if (state.shift === '07-17') shiftLabel = '07:00 às 17:00';
+        else if (state.shift === '08-18') shiftLabel = '08:00 às 18:00';
+        else if (state.shift === '09-19') shiftLabel = '09:00 às 19:00';
+        else if (state.shift === '1') shiftLabel = '1º Turno (06:00 - 14:00)';
         else if (state.shift === '2') shiftLabel = '2º Turno (14:00 - 22:00)';
         else if (state.shift === '3') shiftLabel = '3º Turno (22:00 - 06:00)';
         else if (state.shift === 'comercial') shiftLabel = 'Horário Comercial (08:00 - 18:00)';
@@ -660,41 +666,49 @@ document.addEventListener('DOMContentLoaded', () => {
             : `<div style="width:52px; height:52px; background:#0a142d; border:1px solid #00f2fe; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#00f2fe; font-weight:bold; font-size:16px;">NOC</div>`;
 
         const categoryConfig = {
-            monitoramento: { label: 'Monitoração', bg: 'rgba(0, 242, 254, 0.15)', color: '#00f2fe', border: 'rgba(0, 242, 254, 0.3)' },
-            incidente:     { label: 'Incidente',   bg: 'rgba(255, 75, 43, 0.15)', color: '#ff4b2b', border: 'rgba(255, 75, 43, 0.3)' },
-            mudanca:       { label: 'Mudança',     bg: 'rgba(255, 184, 0, 0.15)', color: '#ffb800', border: 'rgba(255, 184, 0, 0.3)' },
-            backup:        { label: 'Backup',      bg: 'rgba(0, 255, 135, 0.15)', color: '#00ff87', border: 'rgba(0, 255, 135, 0.3)' },
-            outro:         { label: 'Outro',       bg: 'rgba(148, 163, 184, 0.15)', color: '#94a3b8', border: 'rgba(148, 163, 184, 0.3)' }
+            monitoramento: { label: 'Monitoramento', bg: 'rgba(0, 242, 254, 0.15)',   color: '#00f2fe', border: 'rgba(0, 242, 254, 0.3)' },
+            suporte:       { label: 'Suporte',       bg: 'rgba(79, 172, 254, 0.15)',  color: '#4facfe', border: 'rgba(79, 172, 254, 0.3)' },
+            n3:            { label: 'N3',            bg: 'rgba(167, 139, 250, 0.15)', color: '#a78bfa', border: 'rgba(167, 139, 250, 0.3)' },
+            rotina:        { label: 'Rotina',        bg: 'rgba(0, 255, 135, 0.15)',   color: '#00ff87', border: 'rgba(0, 255, 135, 0.3)' },
+            flow:          { label: 'Flow',          bg: 'rgba(255, 184, 0, 0.15)',   color: '#ffb800', border: 'rgba(255, 184, 0, 0.3)' }
+        };
+        const catDefault = { label: 'Outro', bg: 'rgba(148,163,184,0.15)', color: '#94a3b8', border: 'rgba(148,163,184,0.3)' };
+
+        const statusConfig = {
+            'concluido':     { label: 'Concluído',    icon: '✓', color: '#00ff87' },
+            'em-andamento':  { label: 'Em Andamento', icon: '↻', color: '#ffb800' },
+            'pendente':      { label: 'Pendente',     icon: '■', color: '#ff4b2b' }
         };
 
         let tableRowsHtml = '';
-        if (completedActivities.length === 0) {
+        if (allActivities.length === 0) {
             tableRowsHtml = `
                 <tr>
                     <td colspan="4" style="text-align:center; padding:30px 16px; color:#cbd5e1; font-style:italic; font-size:10pt;">
-                        Nenhuma atividade concluída registrada neste turno.
+                        Nenhuma atividade registrada neste turno.
                     </td>
                 </tr>
             `;
         } else {
-            completedActivities.forEach((act, index) => {
-                const cat = categoryConfig[act.category] || categoryConfig.outro;
+            allActivities.forEach((act, index) => {
+                const cat = categoryConfig[act.category] || catDefault;
+                const sts = statusConfig[act.status] || { label: act.status || '-', icon: '', color: '#94a3b8' };
                 const rowBg = index % 2 === 0 ? 'rgba(6, 15, 38, 0.65)' : 'rgba(10, 20, 45, 0.5)';
                 tableRowsHtml += `
                     <tr style="background-color:${rowBg};">
-                        <td style="padding:10px 14px; border-bottom:1px solid rgba(255, 255, 255, 0.08); font-family:'JetBrains Mono', 'Courier New', monospace; font-size:10pt; color:#00f2fe; font-weight:600; white-space:nowrap;">
-                            ${escapeHTML(act.time)}
+                        <td style="padding:10px 14px; border-bottom:1px solid rgba(255,255,255,0.08); font-family:'JetBrains Mono','Courier New',monospace; font-size:10pt; color:#00f2fe; font-weight:600; white-space:nowrap;">
+                            ${escapeHTML(act.time || '--:--')}
                         </td>
-                        <td style="padding:10px 14px; border-bottom:1px solid rgba(255, 255, 255, 0.08);">
+                        <td style="padding:10px 14px; border-bottom:1px solid rgba(255,255,255,0.08);">
                             <span style="display:inline-block; padding:3px 10px; border-radius:4px; font-size:8pt; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; background:${cat.bg}; color:${cat.color}; border:1px solid ${cat.border};">
                                 ${cat.label}
                             </span>
                         </td>
-                        <td style="padding:10px 14px; border-bottom:1px solid rgba(255, 255, 255, 0.08); font-size:10pt; color:#ffffff; line-height:1.4;">
-                            ${escapeHTML(act.description)}
+                        <td style="padding:10px 14px; border-bottom:1px solid rgba(255,255,255,0.08); font-size:10pt; color:#ffffff; line-height:1.4;">
+                            ${escapeHTML(act.description || '')}
                         </td>
-                        <td style="padding:10px 14px; border-bottom:1px solid rgba(255, 255, 255, 0.08); font-size:9pt; color:#00ff87; font-weight:600; white-space:nowrap;">
-                            ✓ Concluído
+                        <td style="padding:10px 14px; border-bottom:1px solid rgba(255,255,255,0.08); font-size:9pt; color:${sts.color}; font-weight:600; white-space:nowrap;">
+                            ${sts.icon} ${sts.label}
                         </td>
                     </tr>
                 `;
@@ -780,16 +794,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         📊 Resumo do Turno
                     </div>
                     <div style="text-align:center; margin-bottom:14px;">
-                        <span style="font-size:28pt; font-weight:800; color:#ffffff;">${completedActivities.length}</span>
-                        <span style="font-size:10pt; color:#cbd5e1; margin-left:8px;">atividade${completedActivities.length !== 1 ? 's' : ''} concluída${completedActivities.length !== 1 ? 's' : ''}</span>
+                        <span style="font-size:28pt; font-weight:800; color:#ffffff;">${allActivities.length}</span>
+                        <span style="font-size:10pt; color:#cbd5e1; margin-left:8px;">atividade${allActivities.length !== 1 ? 's' : ''} registrada${allActivities.length !== 1 ? 's' : ''} neste turno</span>
                     </div>
                     <table style="width:100%; border-collapse:collapse;">
                         <tr>
-                            ${buildStatCard('Monitoração', stats.monitoramento, '#00f2fe')}
-                            ${buildStatCard('Incidentes', stats.incidente, '#ff4b2b')}
-                            ${buildStatCard('Mudanças', stats.mudanca, '#ffb800')}
-                            ${buildStatCard('Backup', stats.backup, '#00ff87')}
-                            ${buildStatCard('Outros', stats.outro, '#cbd5e1')}
+                            ${buildStatCard('Monitoramento', stats.monitoramento, '#00f2fe')}
+                            ${buildStatCard('Suporte', stats.suporte, '#4facfe')}
+                            ${buildStatCard('N3', stats.n3, '#a78bfa')}
+                            ${buildStatCard('Rotina', stats.rotina, '#00ff87')}
+                            ${buildStatCard('Flow', stats.flow, '#ffb800')}
                         </tr>
                     </table>
                 </div>
@@ -830,6 +844,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // =============================================
 
     function getShiftLabel(shift) {
+        if (shift === '07-17') return '07:00 às 17:00';
+        if (shift === '08-18') return '08:00 às 18:00';
+        if (shift === '09-19') return '09:00 às 19:00';
         if (shift === '1') return '1º Turno (06:00 - 14:00)';
         if (shift === '2') return '2º Turno (14:00 - 22:00)';
         if (shift === '3') return '3º Turno (22:00 - 06:00)';
@@ -845,13 +862,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function getCategoryLabel(category) {
         const labels = {
-            monitoramento: 'Monitoração',
-            incidente: 'Incidente',
-            mudanca: 'Mudança',
-            backup: 'Backup',
-            outro: 'Outro'
+            monitoramento: 'Monitoramento',
+            suporte: 'Suporte',
+            n3: 'N3',
+            rotina: 'Rotina',
+            flow: 'Flow'
         };
-        return labels[category] || 'Outro';
+        return labels[category] || category || 'Outro';
     }
 
     function getActivityStatusLabel(status) {
