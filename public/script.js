@@ -1495,58 +1495,113 @@ document.addEventListener('DOMContentLoaded', () => {
             loadingEl.classList.add('hidden');
             resultEl.classList.remove('hidden');
             resultEl.innerHTML = '<p style="color:var(--color-muted);text-align:center;padding:20px;">Nenhum dado encontrado para esta semana.</p>';
-            btnRegenerateAi.style.display = 'block';
             return;
         }
 
-        // Montar resumo das atividades para o prompt
-        let allActs = [];
+        // Aguarda um pequeno momento para simular carregamento suave
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        // Agregar dados
+        let total = 0;
+        let concluido = 0;
+        let andamento = 0;
+        let pendente = 0;
+        const catCount = { monitoramento: 0, suporte: 0, n3: 0, rotina: 0, flow: 0 };
+        const pendingOrProgressActivities = [];
+
         reports.forEach(r => {
             const dateStr = (r.report_date || r.reportDate || '').toString().substring(0, 10);
+            const formattedDate = formatDateBR(dateStr);
             (r.activities || []).forEach(a => {
-                allActs.push(`[${formatDateBR(dateStr)} | ${CAT_LABELS[a.category] || a.category || 'Geral'} | ${a.status}] ${a.description || a.descricao || ''}`);
+                total++;
+                const statusLower = (a.status || '').toLowerCase();
+                let statusLabel = a.status;
+                if (statusLower.includes('conclu')) {
+                    concluido++;
+                    statusLabel = '✅ Concluído';
+                } else if (statusLower.includes('andamento')) {
+                    andamento++;
+                    statusLabel = '🔄 Em Andamento';
+                    pendingOrProgressActivities.push({ date: formattedDate, cat: a.category, desc: a.description || a.descricao || '', status: statusLabel });
+                } else {
+                    pendente++;
+                    statusLabel = '⏳ Pendente';
+                    pendingOrProgressActivities.push({ date: formattedDate, cat: a.category, desc: a.description || a.descricao || '', status: statusLabel });
+                }
+
+                const cat = (a.category || '').toLowerCase();
+                if (catCount[cat] !== undefined) {
+                    catCount[cat]++;
+                } else {
+                    catCount['rotina']++;
+                }
             });
         });
 
-        const prompt = `Você é um analista sênior de NOC (Network Operations Center). Com base nas atividades da semana abaixo, gere um resumo executivo profissional em português brasileiro.
+        // Determine main focus
+        let mainCat = '';
+        let maxCount = -1;
+        Object.keys(catCount).forEach(c => {
+            if (catCount[c] > maxCount) {
+                maxCount = catCount[c];
+                mainCat = c;
+            }
+        });
+        const mainCatLabel = CAT_LABELS[mainCat] || mainCat;
 
-ATIVIDADES DA SEMANA (${allActs.length} no total, ${reports.length} relatório(s)):
-${allActs.slice(0, 60).join('\n')}
+        // Build HTML content
+        let html = '';
+        
+        // 1. Visão Geral
+        const pctConcluido = total > 0 ? Math.round((concluido/total)*100) : 0;
+        html += `<p><strong>Visão Geral:</strong> Durante esta semana, foram registradas um total de <strong>${total}</strong> atividades operacionais ao longo de <strong>${reports.length}</strong> relatórios de NOC. Desse total, <strong>${concluido}</strong> atividades foram concluídas com sucesso (${pctConcluido}%), <strong>${andamento}</strong> permanecem em andamento e <strong>${pendente}</strong> estão classificadas como pendentes.</p>`;
 
-Gere o resumo com estas seções usando HTML simples (apenas <p>, <strong>, <ul>, <li>, sem markdown):
-1. <strong>Visão Geral</strong> — parágrafo resumindo o desempenho da semana
-2. <strong>Principais Focos</strong> — lista com as categorias mais ativas e o que foi realizado
-3. <strong>Pontos de Atenção</strong> — atividades pendentes ou em andamento que precisam de acompanhamento
-4. <strong>Conclusão</strong> — avaliação geral do período
+        // 2. Principais Focos
+        const pctMain = total > 0 ? Math.round((maxCount/total)*100) : 0;
+        html += `<p><strong>Principais Focos:</strong> A área com maior volume de registros foi <strong>${mainCatLabel}</strong>, acumulando <strong>${maxCount}</strong> atividades (${pctMain}% do total). A distribuição geral das atividades por categoria foi:</p>`;
+        html += `<ul style="margin-left: 20px; margin-bottom: 12px;">`;
+        Object.keys(catCount).forEach(c => {
+            if (catCount[c] > 0) {
+                const perc = total > 0 ? Math.round((catCount[c] / total) * 100) : 0;
+                html += `<li><strong>${CAT_LABELS[c] || c}</strong>: ${catCount[c]} atividades (${perc}%)</li>`;
+            }
+        });
+        html += `</ul>`;
 
-Seja objetivo, profissional e direto. Máximo 300 palavras.`;
-
-        try {
-            const res = await fetch('https://api.anthropic.com/v1/messages', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    model: 'claude-sonnet-4-20250514',
-                    max_tokens: 1000,
-                    messages: [{ role: 'user', content: prompt }]
-                })
+        // 3. Pontos de Atenção
+        if (pendingOrProgressActivities.length > 0) {
+            html += `<p><strong>Pontos de Atenção (Pendentes/Em Andamento):</strong></p>`;
+            html += `<ul style="margin-left: 20px; margin-bottom: 12px;">`;
+            pendingOrProgressActivities.slice(0, 5).forEach(act => {
+                html += `<li>[${act.date}] <strong>${CAT_LABELS[act.cat] || act.cat}</strong>: ${act.desc} (${act.status})</li>`;
             });
-
-            const data = await res.json();
-            const text = data.content?.find(b => b.type === 'text')?.text || '';
-
-            loadingEl.classList.add('hidden');
-            resultEl.classList.remove('hidden');
-            resultEl.innerHTML = text || '<p>Não foi possível gerar a análise.</p>';
-            btnRegenerateAi.style.display = 'block';
-
-        } catch (err) {
-            console.error('Erro na API de IA:', err);
-            loadingEl.classList.add('hidden');
-            resultEl.classList.remove('hidden');
-            resultEl.innerHTML = '<p style="color:var(--color-danger)">Erro ao conectar com a IA. Verifique a conexão e tente novamente.</p>';
-            btnRegenerateAi.style.display = 'block';
+            if (pendingOrProgressActivities.length > 5) {
+                html += `<li><em>E mais ${pendingOrProgressActivities.length - 5} atividade(s) sob acompanhamento...</em></li>`;
+            }
+            html += `</ul>`;
+        } else {
+            html += `<p><strong>Pontos de Atenção:</strong> Excelente desempenho operacional. Não há atividades pendentes ou em andamento sob monitoração nesta semana.</p>`;
         }
+
+        // 4. Conclusão
+        let conclusao = '';
+        if (total === 0) {
+            conclusao = 'Nenhuma atividade registrada no período.';
+        } else if (concluido === total) {
+            conclusao = 'Todas as atividades da semana foram concluídas com sucesso, demonstrando máxima eficiência operacional e estabilidade total no ambiente.';
+        } else if (concluido / total > 0.8) {
+            conclusao = 'A semana apresentou um índice de entrega elevado, com mais de 80% das tarefas concluídas. O fluxo de suporte e monitoração manteve-se altamente responsivo e ágil.';
+        } else if (concluido / total > 0.5) {
+            conclusao = 'O volume de entregas atingiu um nível satisfatório. Recomenda-se dar prioridade ao encerramento das atividades em andamento no início do próximo período.';
+        } else {
+            conclusao = 'A maior parte das atividades ainda se encontra pendente ou em andamento. É importante coordenar esforços para agilizar as tratativas e garantir a estabilidade do NOC.';
+        }
+        html += `<p><strong>Conclusão:</strong> ${conclusao}</p>`;
+
+        loadingEl.classList.add('hidden');
+        resultEl.classList.remove('hidden');
+        resultEl.innerHTML = html;
+        btnRegenerateAi.style.display = 'block';
     }
 
     async function exportWeeklyPDF() {
@@ -1646,7 +1701,7 @@ Seja objetivo, profissional e direto. Máximo 300 palavras.`;
   <tbody>${reportRows || '<tr><td colspan="4" style="text-align:center;opacity:0.5">Sem relatórios</td></tr>'}</tbody></table>
 </div>
 <div class="section ai-section">
-  <div class="section-title">🤖 Análise Inteligente da Semana</div>
+  <div class="section-title">📄 Resumo das Atividades da Semana</div>
   ${aiText}
 </div>
 <div class="footer">Gerado em ${new Date().toLocaleString('pt-BR')} — NOC Report System — DOCUMENTO INTERNO</div>
