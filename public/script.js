@@ -1483,7 +1483,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.fillText('atividades', cx, cy + 14);
     }
 
-    async function generateWeeklyAI(reports) {
+    function generateWeeklyAI(reports) {
         const loadingEl = document.getElementById('weekly-ai-loading');
         const resultEl  = document.getElementById('weekly-ai-result');
         btnRegenerateAi.style.display = 'none';
@@ -1494,110 +1494,121 @@ document.addEventListener('DOMContentLoaded', () => {
         if (reports.length === 0) {
             loadingEl.classList.add('hidden');
             resultEl.classList.remove('hidden');
-            resultEl.innerHTML = '<p style="color:var(--color-muted);text-align:center;padding:20px;">Nenhum dado encontrado para esta semana.</p>';
+            resultEl.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px;">Nenhum dado encontrado para esta semana.</p>';
+            btnRegenerateAi.style.display = 'block';
             return;
         }
 
-        // Aguarda um pequeno momento para simular carregamento suave
-        await new Promise(resolve => setTimeout(resolve, 300));
-
-        // Agregar dados
-        let total = 0;
-        let concluido = 0;
-        let andamento = 0;
-        let pendente = 0;
+        // Coletar e analisar dados
+        let total = 0, concluido = 0, andamento = 0, pendente = 0;
         const catCount = { monitoramento: 0, suporte: 0, n3: 0, rotina: 0, flow: 0 };
-        const pendingOrProgressActivities = [];
+        const pendingItems = [];
+        const andamentoItems = [];
+        const daySet = new Set();
 
         reports.forEach(r => {
             const dateStr = (r.report_date || r.reportDate || '').toString().substring(0, 10);
-            const formattedDate = formatDateBR(dateStr);
+            if (dateStr) daySet.add(dateStr);
             (r.activities || []).forEach(a => {
                 total++;
-                const statusLower = (a.status || '').toLowerCase();
-                let statusLabel = a.status;
-                if (statusLower.includes('conclu')) {
+                const s = (a.status || '').toLowerCase();
+                const cat = (a.category || '').toLowerCase();
+                if (catCount[cat] !== undefined) catCount[cat]++;
+
+                if (s === 'concluido' || s === 'concluído') {
                     concluido++;
-                    statusLabel = '✅ Concluído';
-                } else if (statusLower.includes('andamento')) {
+                } else if (s === 'em-andamento' || s === 'em andamento') {
                     andamento++;
-                    statusLabel = '🔄 Em Andamento';
-                    pendingOrProgressActivities.push({ date: formattedDate, cat: a.category, desc: a.description || a.descricao || '', status: statusLabel });
+                    andamentoItems.push({ desc: a.description || '', cat: CAT_LABELS[cat] || cat, date: formatDateBR(dateStr) });
                 } else {
                     pendente++;
-                    statusLabel = '⏳ Pendente';
-                    pendingOrProgressActivities.push({ date: formattedDate, cat: a.category, desc: a.description || a.descricao || '', status: statusLabel });
-                }
-
-                const cat = (a.category || '').toLowerCase();
-                if (catCount[cat] !== undefined) {
-                    catCount[cat]++;
-                } else {
-                    catCount['rotina']++;
+                    pendingItems.push({ desc: a.description || '', cat: CAT_LABELS[cat] || cat, date: formatDateBR(dateStr) });
                 }
             });
         });
 
-        // Determine main focus
-        let mainCat = '';
-        let maxCount = -1;
-        Object.keys(catCount).forEach(c => {
-            if (catCount[c] > maxCount) {
-                maxCount = catCount[c];
-                mainCat = c;
-            }
-        });
-        const mainCatLabel = CAT_LABELS[mainCat] || mainCat;
+        const taxaConclusao = total > 0 ? Math.round((concluido / total) * 100) : 0;
+        const diasAtivos = daySet.size;
 
-        // Build HTML content
+        // Ordenar categorias por quantidade (maior primeiro)
+        const catOrdenadas = Object.entries(catCount)
+            .filter(([, v]) => v > 0)
+            .sort((a, b) => b[1] - a[1]);
+
+        const categoriaPrincipal = catOrdenadas.length > 0 ? CAT_LABELS[catOrdenadas[0][0]] : 'N/A';
+        const categoriaSegunda = catOrdenadas.length > 1 ? CAT_LABELS[catOrdenadas[1][0]] : null;
+
+        // Avaliação de desempenho
+        let avaliacao = '', avaliacaoClass = '';
+        if (taxaConclusao >= 90) { avaliacao = 'Excelente'; avaliacaoClass = 'color:#00ff87;'; }
+        else if (taxaConclusao >= 70) { avaliacao = 'Bom'; avaliacaoClass = 'color:#00f2fe;'; }
+        else if (taxaConclusao >= 50) { avaliacao = 'Regular'; avaliacaoClass = 'color:#ffb800;'; }
+        else { avaliacao = 'Requer Atenção'; avaliacaoClass = 'color:#ff4b2b;'; }
+
+        // ---- CONSTRUIR HTML DO RESUMO ----
         let html = '';
-        
+
         // 1. Visão Geral
-        const pctConcluido = total > 0 ? Math.round((concluido/total)*100) : 0;
-        html += `<p><strong>Visão Geral:</strong> Durante esta semana, foram registradas um total de <strong>${total}</strong> atividades operacionais ao longo de <strong>${reports.length}</strong> relatórios de NOC. Desse total, <strong>${concluido}</strong> atividades foram concluídas com sucesso (${pctConcluido}%), <strong>${andamento}</strong> permanecem em andamento e <strong>${pendente}</strong> estão classificadas como pendentes.</p>`;
+        html += `<p><strong style="color:#00f2fe;">📋 Visão Geral</strong></p>`;
+        html += `<p>Durante a semana, foram registradas <strong>${total} atividade${total !== 1 ? 's' : ''}</strong> em <strong>${reports.length} relatório${reports.length !== 1 ? 's' : ''}</strong>, cobrindo <strong>${diasAtivos} dia${diasAtivos !== 1 ? 's' : ''}</strong> de operação. `;
+        html += `A taxa de conclusão foi de <strong style="${avaliacaoClass}">${taxaConclusao}%</strong> (${concluido} de ${total}), classificando o desempenho da semana como <strong style="${avaliacaoClass}">${avaliacao}</strong>.`;
+        if (andamento > 0) html += ` Há ${andamento} atividade${andamento !== 1 ? 's' : ''} em andamento.`;
+        if (pendente > 0) html += ` ${pendente} atividade${pendente !== 1 ? 's permanecem' : ' permanece'} pendente${pendente !== 1 ? 's' : ''}.`;
+        html += `</p>`;
 
         // 2. Principais Focos
-        const pctMain = total > 0 ? Math.round((maxCount/total)*100) : 0;
-        html += `<p><strong>Principais Focos:</strong> A área com maior volume de registros foi <strong>${mainCatLabel}</strong>, acumulando <strong>${maxCount}</strong> atividades (${pctMain}% do total). A distribuição geral das atividades por categoria foi:</p>`;
-        html += `<ul style="margin-left: 20px; margin-bottom: 12px;">`;
-        Object.keys(catCount).forEach(c => {
-            if (catCount[c] > 0) {
-                const perc = total > 0 ? Math.round((catCount[c] / total) * 100) : 0;
-                html += `<li><strong>${CAT_LABELS[c] || c}</strong>: ${catCount[c]} atividades (${perc}%)</li>`;
-            }
-        });
+        html += `<p style="margin-top:16px;"><strong style="color:#00f2fe;">🎯 Principais Focos</strong></p><ul>`;
+        if (catOrdenadas.length === 0) {
+            html += `<li>Nenhuma atividade categorizada nesta semana.</li>`;
+        } else {
+            catOrdenadas.forEach(([key, count]) => {
+                const pct = Math.round((count / total) * 100);
+                html += `<li><strong>${CAT_LABELS[key]}</strong> — ${count} atividade${count !== 1 ? 's' : ''} (${pct}% do total)</li>`;
+            });
+        }
         html += `</ul>`;
+        if (categoriaPrincipal !== 'N/A') {
+            html += `<p>O foco principal da semana foi em <strong>${categoriaPrincipal}</strong>`;
+            if (categoriaSegunda) html += `, seguido por <strong>${categoriaSegunda}</strong>`;
+            html += `.</p>`;
+        }
 
         // 3. Pontos de Atenção
-        if (pendingOrProgressActivities.length > 0) {
-            html += `<p><strong>Pontos de Atenção (Pendentes/Em Andamento):</strong></p>`;
-            html += `<ul style="margin-left: 20px; margin-bottom: 12px;">`;
-            pendingOrProgressActivities.slice(0, 5).forEach(act => {
-                html += `<li>[${act.date}] <strong>${CAT_LABELS[act.cat] || act.cat}</strong>: ${act.desc} (${act.status})</li>`;
-            });
-            if (pendingOrProgressActivities.length > 5) {
-                html += `<li><em>E mais ${pendingOrProgressActivities.length - 5} atividade(s) sob acompanhamento...</em></li>`;
+        html += `<p style="margin-top:16px;"><strong style="color:#00f2fe;">⚠️ Pontos de Atenção</strong></p>`;
+        if (pendingItems.length === 0 && andamentoItems.length === 0) {
+            html += `<p style="color:#00ff87;">✓ Não há atividades pendentes ou em andamento. Excelente desempenho!</p>`;
+        } else {
+            html += `<ul>`;
+            if (pendingItems.length > 0) {
+                html += `<li style="color:#ff4b2b;"><strong>${pendingItems.length} atividade${pendingItems.length !== 1 ? 's' : ''} pendente${pendingItems.length !== 1 ? 's' : ''}:</strong></li>`;
+                pendingItems.slice(0, 5).forEach(item => {
+                    html += `<li style="margin-left:12px;">⏳ [${item.cat}] ${escapeHTML(item.desc.substring(0, 80))}${item.desc.length > 80 ? '...' : ''} <span style="opacity:0.5">(${item.date})</span></li>`;
+                });
+                if (pendingItems.length > 5) html += `<li style="margin-left:12px;opacity:0.6;">... e mais ${pendingItems.length - 5} pendente(s)</li>`;
+            }
+            if (andamentoItems.length > 0) {
+                html += `<li style="color:#ffb800;margin-top:8px;"><strong>${andamentoItems.length} atividade${andamentoItems.length !== 1 ? 's' : ''} em andamento:</strong></li>`;
+                andamentoItems.slice(0, 5).forEach(item => {
+                    html += `<li style="margin-left:12px;">↻ [${item.cat}] ${escapeHTML(item.desc.substring(0, 80))}${item.desc.length > 80 ? '...' : ''} <span style="opacity:0.5">(${item.date})</span></li>`;
+                });
+                if (andamentoItems.length > 5) html += `<li style="margin-left:12px;opacity:0.6;">... e mais ${andamentoItems.length - 5} em andamento</li>`;
             }
             html += `</ul>`;
-        } else {
-            html += `<p><strong>Pontos de Atenção:</strong> Excelente desempenho operacional. Não há atividades pendentes ou em andamento sob monitoração nesta semana.</p>`;
         }
 
         // 4. Conclusão
-        let conclusao = '';
-        if (total === 0) {
-            conclusao = 'Nenhuma atividade registrada no período.';
-        } else if (concluido === total) {
-            conclusao = 'Todas as atividades da semana foram concluídas com sucesso, demonstrando máxima eficiência operacional e estabilidade total no ambiente.';
-        } else if (concluido / total > 0.8) {
-            conclusao = 'A semana apresentou um índice de entrega elevado, com mais de 80% das tarefas concluídas. O fluxo de suporte e monitoração manteve-se altamente responsivo e ágil.';
-        } else if (concluido / total > 0.5) {
-            conclusao = 'O volume de entregas atingiu um nível satisfatório. Recomenda-se dar prioridade ao encerramento das atividades em andamento no início do próximo período.';
+        html += `<p style="margin-top:16px;"><strong style="color:#00f2fe;">📊 Conclusão</strong></p>`;
+        if (taxaConclusao >= 90) {
+            html += `<p>A semana apresentou um desempenho <strong style="color:#00ff87;">excelente</strong>, com ${taxaConclusao}% de taxa de conclusão. A equipe demonstrou alta eficiência operacional e boa gestão das demandas.</p>`;
+        } else if (taxaConclusao >= 70) {
+            html += `<p>A semana teve um desempenho <strong style="color:#00f2fe;">positivo</strong>, com ${taxaConclusao}% de conclusão. Recomenda-se acompanhar as ${andamento + pendente} atividade${(andamento + pendente) !== 1 ? 's' : ''} restante${(andamento + pendente) !== 1 ? 's' : ''} para garantir a finalização.</p>`;
+        } else if (taxaConclusao >= 50) {
+            html += `<p>A semana apresentou desempenho <strong style="color:#ffb800;">regular</strong>, com ${taxaConclusao}% de conclusão. É necessário priorizar as atividades pendentes e em andamento na próxima semana para melhorar a performance.</p>`;
         } else {
-            conclusao = 'A maior parte das atividades ainda se encontra pendente ou em andamento. É importante coordenar esforços para agilizar as tratativas e garantir a estabilidade do NOC.';
+            html += `<p>A semana requer <strong style="color:#ff4b2b;">atenção especial</strong> — apenas ${taxaConclusao}% das atividades foram concluídas. Recomenda-se uma revisão de prioridades e redistribuição de tarefas para a próxima semana.</p>`;
         }
-        html += `<p><strong>Conclusão:</strong> ${conclusao}</p>`;
 
+        // Renderizar
         loadingEl.classList.add('hidden');
         resultEl.classList.remove('hidden');
         resultEl.innerHTML = html;
@@ -1701,7 +1712,7 @@ document.addEventListener('DOMContentLoaded', () => {
   <tbody>${reportRows || '<tr><td colspan="4" style="text-align:center;opacity:0.5">Sem relatórios</td></tr>'}</tbody></table>
 </div>
 <div class="section ai-section">
-  <div class="section-title">📄 Resumo das Atividades da Semana</div>
+  <div class="section-title">📋 Resumo Executivo da Semana</div>
   ${aiText}
 </div>
 <div class="footer">Gerado em ${new Date().toLocaleString('pt-BR')} — NOC Report System — DOCUMENTO INTERNO</div>
