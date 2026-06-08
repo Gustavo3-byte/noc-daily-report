@@ -490,14 +490,20 @@ document.addEventListener('DOMContentLoaded', () => {
         autoSaveTimeout = setTimeout(async () => {
             try {
                 const payload = {
-                    report_date: appState.reportDate,
-                    shift: appState.shift,
+                    report_date:    appState.reportDate,
+                    shift:          appState.shift,
                     overall_status: appState.overallStatus,
-                    activities: appState.activities
+                    activities:     appState.activities
                 };
 
-                const res = await fetch('/api/reports', {
-                    method: 'POST',
+                // Se já temos um ID de relatório carregado → atualizar via PUT
+                // Senão → criar/upsert via POST (por data+turno)
+                const hasId = !!appState.currentReportId;
+                const url    = hasId ? `/api/reports/${appState.currentReportId}` : '/api/reports';
+                const method = hasId ? 'PUT' : 'POST';
+
+                const res = await fetch(url, {
+                    method,
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'same-origin',
                     body: JSON.stringify(payload)
@@ -505,29 +511,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (res.ok) {
                     const data = await res.json();
+                    // Guardar o ID retornado (para o caso de POST que criou novo)
                     if (data.report && data.report.id) {
                         appState.currentReportId = data.report.id;
                     }
 
-                    const now = new Date();
-                    const timeStr = now.toLocaleTimeString('pt-BR');
-
+                    const timeStr = new Date().toLocaleTimeString('pt-BR');
                     autosaveDot.style.background = 'var(--color-success)';
                     autosaveDot.style.boxShadow = '0 0 8px var(--color-success)';
                     textAutosaveStatus.textContent = `Salvo no servidor em ${timeStr}`;
 
-                    // Refresh my reports list
+                    // Atualizar a lista de relatórios
                     loadMyReports();
                 } else {
-                    throw new Error('Resposta não-ok do servidor');
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.error || `HTTP ${res.status}`);
                 }
             } catch (err) {
                 console.error('Erro ao salvar relatório:', err);
                 autosaveDot.style.background = 'var(--color-danger)';
                 autosaveDot.style.boxShadow = '0 0 8px var(--color-danger)';
-                textAutosaveStatus.textContent = 'Erro ao salvar — tente novamente';
+                textAutosaveStatus.textContent = `Erro ao salvar: ${err.message}`;
             }
-        }, 500);
+        }, 800);
     }
 
     // --- MEUS RELATÓRIOS ---
