@@ -156,11 +156,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- EVENT LISTENERS ---
     function setupEventListeners() {
-        // Shift change
+        // Shift change — turno diferente = pode ser relatório diferente
         selectNocShift.addEventListener('change', (e) => {
-            appState.shift = e.target.value;
-            triggerAutoSave();
+            const newShift = e.target.value;
+            if (newShift !== appState.shift) {
+                appState.shift = newShift;
+                appState.currentReportId = null; // zera para buscar/criar o correto
+                triggerAutoSave();
+            }
         });
+
+        // Date change — ao mudar a data, zera o currentReportId
+        // para que o próximo save crie/encontre o relatório correto para aquela data
+        if (inputReportDate) {
+            inputReportDate.addEventListener('change', (e) => {
+                const newDate = e.target.value;
+                if (newDate !== appState.reportDate) {
+                    appState.reportDate = newDate;
+                    appState.currentReportId = null; // novo dia = novo relatório
+                    triggerAutoSave();
+                }
+            });
+        }
+
+        // Analyst name change
+        if (inputAnalystName) {
+            inputAnalystName.addEventListener('change', (e) => {
+                appState.analystName = e.target.value.trim();
+            });
+        }
 
         // Status do NOC Radios
         const statusRadios = [radioStatusNormal, radioStatusWarning, radioStatusCritical];
