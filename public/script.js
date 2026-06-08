@@ -2,7 +2,7 @@
    SCRIPT PRINCIPAL - NOC DAILY REPORT (JS PURO — MULTI-USER / API)
    ========================================================================== */
 
-document.addEventListener('DOMContentLoaded', () => {
+function initApp() {
     // --- ESTADO DO APLICATIVO ---
     let appState = {
         user: null,
@@ -1726,4 +1726,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-});
+}
+
+// Garante execução mesmo se DOMContentLoaded já disparou
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initApp);
+} else {
+    initApp();
+}
