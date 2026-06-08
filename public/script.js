@@ -1332,55 +1332,66 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =========================================================================
-    // RESUMO SEMANAL
+    // RESUMO SEMANAL — funções declaradas primeiro para garantir hoisting
     // =========================================================================
 
-    const modalWeekly        = document.getElementById('modal-weekly-report');
-    const btnWeeklyReport    = document.getElementById('btn-weekly-report');
-    const btnCloseWeekly     = document.getElementById('btn-close-weekly-modal');
-    const btnWeekPrev        = document.getElementById('btn-week-prev');
-    const btnWeekNext        = document.getElementById('btn-week-next');
-    const weeklyRangeLabel   = document.getElementById('weekly-range-label');
-    const btnExportWeeklyPdf = document.getElementById('btn-export-weekly-pdf');
-    const btnRegenerateAi    = document.getElementById('btn-regenerate-ai');
+    const CAT_COLORS = {
+        monitoramento: '#00f2fe',
+        suporte:       '#4facfe',
+        n3:            '#a855f7',
+        rotina:        '#34d399',
+        flow:          '#fbbf24',
+    };
+    const CAT_LABELS = {
+        monitoramento: 'Monitoramento',
+        suporte:       'Suporte',
+        n3:            'N3',
+        rotina:        'Rotina',
+        flow:          'Flow',
+    };
 
+    // --- Estado e elementos do modal ---
     let weeklyCurrentMonday = getMonday(new Date());
     let weeklyReports       = [];
-    let weeklyPieChart      = null;
 
-    // Verificar se os elementos existem antes de registrar listeners
-    if (!btnWeeklyReport || !modalWeekly) {
-        console.warn('[Resumo Semanal] Elementos não encontrados no DOM. Modal desabilitado.');
-    } else {
-        // Abre modal
-        btnWeeklyReport.addEventListener('click', () => {
+    // --- Wiring dos listeners ---
+    (function setupWeeklyListeners() {
+        const modalWeekly     = document.getElementById('modal-weekly-report');
+        const btnOpen         = document.getElementById('btn-weekly-report');
+        const btnClose        = document.getElementById('btn-close-weekly-modal');
+        const btnPrev         = document.getElementById('btn-week-prev');
+        const btnNext         = document.getElementById('btn-week-next');
+        const btnExportPdfW   = document.getElementById('btn-export-weekly-pdf');
+        const btnRegen        = document.getElementById('btn-regenerate-ai');
+
+        if (!btnOpen || !modalWeekly) {
+            console.warn('[Resumo Semanal] Elementos não encontrados no DOM.');
+            return;
+        }
+
+        btnOpen.addEventListener('click', () => {
             weeklyCurrentMonday = getMonday(new Date());
             modalWeekly.style.display = 'flex';
             loadWeeklyData();
         });
 
-        // Fecha modal
-        if (btnCloseWeekly) btnCloseWeekly.addEventListener('click', () => { modalWeekly.style.display = 'none'; });
+        if (btnClose) btnClose.addEventListener('click', () => { modalWeekly.style.display = 'none'; });
         modalWeekly.addEventListener('click', e => { if (e.target === modalWeekly) modalWeekly.style.display = 'none'; });
 
-        // Navegar semanas
-        if (btnWeekPrev) btnWeekPrev.addEventListener('click', () => {
+        if (btnPrev) btnPrev.addEventListener('click', () => {
             weeklyCurrentMonday = new Date(weeklyCurrentMonday);
             weeklyCurrentMonday.setDate(weeklyCurrentMonday.getDate() - 7);
             loadWeeklyData();
         });
-        if (btnWeekNext) btnWeekNext.addEventListener('click', () => {
+        if (btnNext) btnNext.addEventListener('click', () => {
             weeklyCurrentMonday = new Date(weeklyCurrentMonday);
             weeklyCurrentMonday.setDate(weeklyCurrentMonday.getDate() + 7);
             loadWeeklyData();
         });
 
-        // Regenerar resumo
-        if (btnRegenerateAi) btnRegenerateAi.addEventListener('click', () => generateWeeklyAI(weeklyReports));
-
-        // Exportar PDF semanal
-        if (btnExportWeeklyPdf) btnExportWeeklyPdf.addEventListener('click', exportWeeklyPDF);
-    }
+        if (btnRegen) btnRegen.addEventListener('click', () => generateWeeklyAI(weeklyReports));
+        if (btnExportPdfW) btnExportPdfW.addEventListener('click', exportWeeklyPDF);
+    })();
 
     function getMonday(date) {
         const d = new Date(date);
@@ -1398,21 +1409,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function loadWeeklyData() {
-        // Calcular range da semana
         const monday = new Date(weeklyCurrentMonday);
         const sunday = new Date(monday);
         sunday.setDate(sunday.getDate() + 6);
 
-        weeklyRangeLabel.textContent = `${monday.toLocaleDateString('pt-BR')} — ${sunday.toLocaleDateString('pt-BR')}`;
+        const rangeEl = document.getElementById('weekly-range-label');
+        if (rangeEl) {
+            rangeEl.textContent = `${monday.toLocaleDateString('pt-BR')} — ${sunday.toLocaleDateString('pt-BR')}`;
+        }
 
-        // Buscar todos os relatórios
         try {
             const res = await fetch('/api/reports', { credentials: 'same-origin' });
-            if (!res.ok) throw new Error('Falha');
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
             const all = data.reports || [];
 
-            // Filtrar pela semana
             weeklyReports = all.filter(r => {
                 const raw = r.report_date || r.reportDate || '';
                 const dateStr = raw.toString().substring(0, 10);
@@ -1426,41 +1437,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (err) {
             console.error('Erro ao carregar dados semanais:', err);
+            // Mostrar erro no modal sem travar
+            const tbody = document.getElementById('weekly-reports-tbody');
+            if (tbody) tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--color-danger);padding:20px;"><i class="fa-solid fa-triangle-exclamation"></i> Erro ao carregar dados: ${err.message}</td></tr>`;
         }
     }
 
     function renderWeeklyData(reports) {
-        // Agregar atividades
         let total = 0, concluido = 0, andamento = 0, pendente = 0;
         const catCount = { monitoramento: 0, suporte: 0, n3: 0, rotina: 0, flow: 0 };
 
         reports.forEach(r => {
-            const acts = r.activities || [];
-            acts.forEach(a => {
+            (r.activities || []).forEach(a => {
                 total++;
                 const s = (a.status || '').toLowerCase();
                 if (s === 'concluido' || s === 'concluído') concluido++;
                 else if (s === 'em-andamento' || s === 'em andamento') andamento++;
                 else pendente++;
-
                 const cat = (a.category || a.categoria || '').toLowerCase();
                 if (catCount[cat] !== undefined) catCount[cat]++;
                 else catCount['rotina']++;
             });
         });
 
-        // Cards
-        document.getElementById('wsc-total').textContent      = total;
-        document.getElementById('wsc-concluido').textContent  = concluido;
-        document.getElementById('wsc-andamento').textContent  = andamento;
-        document.getElementById('wsc-pendente').textContent   = pendente;
-        document.getElementById('wsc-relatorios').textContent = reports.length;
+        // Cards — com null check em cada um
+        const setCard = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+        setCard('wsc-total',      total);
+        setCard('wsc-concluido',  concluido);
+        setCard('wsc-andamento',  andamento);
+        setCard('wsc-pendente',   pendente);
+        setCard('wsc-relatorios', reports.length);
 
-        // Gráfico pizza
+        // Gráfico
         drawPieChart(catCount, total);
 
         // Tabela
         const tbody = document.getElementById('weekly-reports-tbody');
+        if (!tbody) return;
         if (reports.length === 0) {
             tbody.innerHTML = `<tr><td colspan="4" class="empty-state"><i class="fa-solid fa-folder-open"></i> Nenhum relatório nesta semana.</td></tr>`;
             return;
@@ -1479,23 +1492,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    const CAT_COLORS = {
-        monitoramento: '#00f2fe',
-        suporte:       '#4facfe',
-        n3:            '#a855f7',
-        rotina:        '#34d399',
-        flow:          '#fbbf24',
-    };
-    const CAT_LABELS = {
-        monitoramento: 'Monitoramento',
-        suporte:       'Suporte',
-        n3:            'N3',
-        rotina:        'Rotina',
-        flow:          'Flow',
-    };
-
     function drawPieChart(catCount, total) {
         const canvas = document.getElementById('weekly-pie-chart');
+        if (!canvas) return;
         const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -1577,9 +1576,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function generateWeeklyAI(reports) {
-        const loadingEl = document.getElementById('weekly-ai-loading');
-        const resultEl  = document.getElementById('weekly-ai-result');
-        btnRegenerateAi.style.display = 'none';
+        const loadingEl  = document.getElementById('weekly-ai-loading');
+        const resultEl   = document.getElementById('weekly-ai-result');
+        const btnRegen   = document.getElementById('btn-regenerate-ai');
+        if (!loadingEl || !resultEl) return;
+
+        if (btnRegen) btnRegen.style.display = 'none';
         loadingEl.classList.remove('hidden');
         resultEl.classList.add('hidden');
         resultEl.innerHTML = '';
@@ -1588,7 +1590,7 @@ document.addEventListener('DOMContentLoaded', () => {
             loadingEl.classList.add('hidden');
             resultEl.classList.remove('hidden');
             resultEl.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px;">Nenhum dado encontrado para esta semana.</p>';
-            btnRegenerateAi.style.display = 'block';
+            if (btnRegen) btnRegen.style.display = 'block';
             return;
         }
 
@@ -1705,10 +1707,13 @@ document.addEventListener('DOMContentLoaded', () => {
         loadingEl.classList.add('hidden');
         resultEl.classList.remove('hidden');
         resultEl.innerHTML = html;
-        btnRegenerateAi.style.display = 'block';
+        const _btnRegen = document.getElementById('btn-regenerate-ai');
+        if (_btnRegen) _btnRegen.style.display = 'block';
     }
 
-    async function exportWeeklyPDF() {
+    function exportWeeklyPDF() {
+        const btnExportWeeklyPdf = document.getElementById('btn-export-weekly-pdf');
+        if (!btnExportWeeklyPdf) return;
         const originalText = btnExportWeeklyPdf.innerHTML;
         btnExportWeeklyPdf.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gerando...';
         btnExportWeeklyPdf.disabled = true;
