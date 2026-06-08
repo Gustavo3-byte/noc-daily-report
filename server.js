@@ -56,11 +56,10 @@ app.use(
           'https://cdnjs.cloudflare.com',
           'https://ka-f.fontawesome.com',
         ],
-        imgSrc: ["'self'", 'data:'],
+        imgSrc: ["'self'", 'data:', 'blob:'],
         connectSrc: [
           "'self'",
           'https://ka-f.fontawesome.com',
-          'https://api.anthropic.com',
           'https://cdnjs.cloudflare.com',
         ],
         workerSrc: ["'self'", 'blob:'],
@@ -137,6 +136,22 @@ app.get('/admin', (req, res) => {
     return res.redirect('/');
   }
   return res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+// Bloquear acesso direto aos arquivos HTML protegidos
+app.get('/admin.html', (req, res) => res.redirect('/admin'));
+app.get('/index.html', (req, res) => res.redirect('/'));
+
+// ============================================
+// 404 - Rota não encontrada
+// ============================================
+app.use((req, res) => {
+  // Se for uma requisição de API, retornar JSON
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: 'Rota não encontrada.' });
+  }
+  // Para outras rotas, redirecionar para o dashboard
+  res.redirect('/');
 });
 
 // ============================================
