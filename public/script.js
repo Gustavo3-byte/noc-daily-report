@@ -1491,7 +1491,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function generateWeeklyAI(reports) {
         const loadingEl = document.getElementById('weekly-ai-loading');
         const resultEl  = document.getElementById('weekly-ai-result');
-        btnRegenerateAi.style.display = 'none';
+        if (!loadingEl || !resultEl) return; // elementos do modal ainda não existem
+        if (btnRegenerateAi) btnRegenerateAi.style.display = 'none';
         loadingEl.classList.remove('hidden');
         resultEl.classList.add('hidden');
         resultEl.innerHTML = '';
@@ -1617,10 +1618,11 @@ document.addEventListener('DOMContentLoaded', () => {
         loadingEl.classList.add('hidden');
         resultEl.classList.remove('hidden');
         resultEl.innerHTML = html;
-        btnRegenerateAi.style.display = 'block';
+        if (btnRegenerateAi) btnRegenerateAi.style.display = 'block';
     }
 
-    async function exportWeeklyPDF() {
+    function exportWeeklyPDF() {
+        if (!btnExportWeeklyPdf) return;
         const originalText = btnExportWeeklyPdf.innerHTML;
         btnExportWeeklyPdf.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gerando...';
         btnExportWeeklyPdf.disabled = true;
@@ -1630,6 +1632,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const sunday = new Date(monday);
             sunday.setDate(sunday.getDate() + 6);
             const rangeText = `${monday.toLocaleDateString('pt-BR')} a ${sunday.toLocaleDateString('pt-BR')}`;
+            const mondayStr = monday.toLocaleDateString('pt-BR').replace(/\//g, '-');
 
             // Agregar dados
             let total = 0, concluido = 0, andamento = 0, pendente = 0;
@@ -1647,95 +1650,156 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
 
-            const aiText = document.getElementById('weekly-ai-result').innerHTML || 'Análise não disponível.';
+            const aiText = document.getElementById('weekly-ai-result')?.innerHTML || 'Resumo não disponível.';
+            const taxaConclusao = total > 0 ? Math.round((concluido / total) * 100) : 0;
 
-            // Gerar HTML do PDF
+            // Gerar linhas da tabela de categorias
             const catRows = Object.keys(catCount)
                 .filter(k => catCount[k] > 0)
                 .map(k => `<tr><td>${CAT_LABELS[k]}</td><td style="text-align:center;font-weight:700;color:${CAT_COLORS[k]}">${catCount[k]}</td><td style="text-align:center">${total > 0 ? Math.round((catCount[k]/total)*100) : 0}%</td></tr>`)
                 .join('');
 
+            // Gerar linhas da tabela de relatórios
             const reportRows = weeklyReports.map(r => {
                 const dateStr = (r.report_date || r.reportDate || '').toString().substring(0, 10);
+                const st = r.overall_status || r.overallStatus || 'normal';
+                const stColor = st === 'critical' ? '#ff4b2b' : st === 'warning' ? '#ffb800' : '#00ff87';
+                const stLabel = st === 'critical' ? '◆ CRÍTICO' : st === 'warning' ? '▲ ATENÇÃO' : '● OPERACIONAL';
                 return `<tr>
                     <td>${formatDateBR(dateStr)}</td>
                     <td>${getShiftLabel(r.shift)}</td>
-                    <td>${r.overall_status || 'normal'}</td>
+                    <td style="color:${stColor};font-weight:600">${stLabel}</td>
                     <td style="text-align:center">${(r.activities||[]).length}</td>
                 </tr>`;
             }).join('');
 
-            const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+            // Determinar cor/texto do desempenho
+            const perfColor = taxaConclusao >= 90 ? '#00ff87' : taxaConclusao >= 70 ? '#00f2fe' : taxaConclusao >= 50 ? '#ffb800' : '#ff4b2b';
+            const perfLabel = taxaConclusao >= 90 ? 'EXCELENTE' : taxaConclusao >= 70 ? 'BOM' : taxaConclusao >= 50 ? 'REGULAR' : 'ATENÇÃO';
+
+            const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Resumo Semanal NOC - ${rangeText}</title>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', Arial, sans-serif; background: #040814; color: #e8eaf0; padding: 40px; }
-  .header { background: linear-gradient(135deg, #0a1628 0%, #1e3a5f 100%); border: 1px solid rgba(0,242,254,0.3); border-radius: 16px; padding: 32px; margin-bottom: 28px; display: flex; justify-content: space-between; align-items: center; }
-  .header h1 { font-size: 22px; font-weight: 800; color: #00f2fe; letter-spacing: 1px; }
-  .header .sub { font-size: 13px; color: rgba(255,255,255,0.55); margin-top: 4px; }
-  .header .range { font-size: 14px; color: rgba(255,255,255,0.8); font-weight: 600; }
-  .cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 28px; }
-  .card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 18px; text-align: center; }
-  .card .val { font-size: 32px; font-weight: 800; color: #00f2fe; }
-  .card .lbl { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-  .section { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
-  .section-title { font-size: 13px; font-weight: 700; color: #00f2fe; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th { background: rgba(0,242,254,0.08); color: #00f2fe; padding: 10px 14px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
-  td { padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.05); color: rgba(255,255,255,0.85); }
+  body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: #040814; color: #e8eaf0; padding: 32px; min-height: 100vh; }
+  /* HEADER */
+  .header { background: linear-gradient(135deg, #0a1628 0%, #0d2244 100%); border: 1px solid rgba(0,242,254,0.25); border-left: 4px solid #00f2fe; border-radius: 12px; padding: 28px 32px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+  .header-left h1 { font-size: 20px; font-weight: 800; color: #ffffff; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .header-left .sub { font-size: 11px; color: #00f2fe; letter-spacing: 2px; text-transform: uppercase; }
+  .header-right { text-align: right; }
+  .header-right .range { font-size: 13px; color: rgba(255,255,255,0.7); font-weight: 600; }
+  .perf-badge { display: inline-block; background: ${perfColor}22; border: 1px solid ${perfColor}; border-radius: 6px; padding: 6px 14px; margin-top: 8px; }
+  .perf-badge span { color: ${perfColor}; font-weight: 700; font-size: 12px; letter-spacing: 1px; }
+  /* CARDS */
+  .cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 24px; }
+  .card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 16px 12px; text-align: center; }
+  .card .val { font-size: 28px; font-weight: 800; line-height: 1; margin-bottom: 6px; }
+  .card .lbl { font-size: 10px; color: rgba(255,255,255,0.45); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+  /* SECTIONS */
+  .section { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 20px 24px; margin-bottom: 16px; }
+  .section-title { font-size: 11px; font-weight: 700; color: #00f2fe; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+  /* TABLES */
+  table { width: 100%; border-collapse: collapse; }
+  th { background: rgba(0,242,254,0.06); color: #00f2fe; padding: 9px 12px; text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; border-bottom: 1px solid rgba(0,242,254,0.15); }
+  td { padding: 9px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); color: rgba(255,255,255,0.8); font-size: 13px; }
   tr:last-child td { border-bottom: none; }
-  .ai-section p { line-height: 1.7; margin-bottom: 10px; font-size: 14px; color: rgba(255,255,255,0.8); }
+  tr:nth-child(even) td { background: rgba(255,255,255,0.015); }
+  /* AI / RESUMO */
+  .ai-section p { line-height: 1.7; margin-bottom: 10px; font-size: 13px; color: rgba(255,255,255,0.8); }
   .ai-section strong { color: #00f2fe; }
-  .ai-section ul { padding-left: 20px; margin: 8px 0; }
-  .ai-section li { margin-bottom: 6px; font-size: 13px; color: rgba(255,255,255,0.75); line-height: 1.5; }
-  .footer { margin-top: 28px; text-align: center; font-size: 11px; color: rgba(255,255,255,0.3); }
-  .print-btn { display: block; margin: 24px auto; background: #00f2fe; color: #040814; border: none; border-radius: 10px; padding: 12px 32px; font-size: 14px; font-weight: 700; cursor: pointer; }
-  @media print { .no-print { display: none !important; } }
-</style></head><body>
+  .ai-section ul { padding-left: 18px; margin: 8px 0; }
+  .ai-section li { margin-bottom: 5px; font-size: 12px; color: rgba(255,255,255,0.7); line-height: 1.5; }
+  /* FOOTER */
+  .footer { margin-top: 24px; text-align: center; font-size: 10px; color: rgba(255,255,255,0.25); padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.06); }
+  /* PRINT BUTTON */
+  .no-print { text-align: center; margin-top: 28px; }
+  .print-btn { background: linear-gradient(135deg, #00f2fe, #4facfe); color: #040814; border: none; border-radius: 8px; padding: 12px 36px; font-size: 14px; font-weight: 700; cursor: pointer; letter-spacing: 0.5px; }
+  .print-btn:hover { opacity: 0.9; }
+  @media print {
+    .no-print { display: none !important; }
+    body { padding: 16px; background: #040814 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
 <div class="header">
-  <div>
-    <div class="sub">NOC — NETWORK OPERATIONS CENTER</div>
-    <h1>📊 RESUMO SEMANAL DE ATIVIDADES</h1>
+  <div class="header-left">
+    <div class="sub">NOC — Network Operations Center</div>
+    <h1>Resumo Semanal de Atividades</h1>
   </div>
-  <div class="range">📅 ${rangeText}</div>
+  <div class="header-right">
+    <div class="range">📅 ${rangeText}</div>
+    <div class="perf-badge"><span>${taxaConclusao}% — ${perfLabel}</span></div>
+  </div>
 </div>
+
 <div class="cards">
-  <div class="card"><div class="val">${total}</div><div class="lbl">Total</div></div>
-  <div class="card"><div class="val" style="color:#34d399">${concluido}</div><div class="lbl">Concluídas</div></div>
-  <div class="card"><div class="val" style="color:#fbbf24">${andamento}</div><div class="lbl">Em Andamento</div></div>
-  <div class="card"><div class="val" style="color:#f87171">${pendente}</div><div class="lbl">Pendentes</div></div>
+  <div class="card"><div class="val" style="color:#00f2fe">${total}</div><div class="lbl">Total</div></div>
+  <div class="card"><div class="val" style="color:#00ff87">${concluido}</div><div class="lbl">Concluídas</div></div>
+  <div class="card"><div class="val" style="color:#ffb800">${andamento}</div><div class="lbl">Em Andamento</div></div>
+  <div class="card"><div class="val" style="color:#ff4b2b">${pendente}</div><div class="lbl">Pendentes</div></div>
   <div class="card"><div class="val" style="color:#a855f7">${weeklyReports.length}</div><div class="lbl">Relatórios</div></div>
 </div>
+
 <div class="section">
   <div class="section-title">📊 Atividades por Categoria</div>
-  <table><thead><tr><th>Categoria</th><th style="text-align:center">Quantidade</th><th style="text-align:center">%</th></tr></thead>
-  <tbody>${catRows || '<tr><td colspan="3" style="text-align:center;opacity:0.5">Sem atividades</td></tr>'}</tbody></table>
+  <table>
+    <thead><tr><th>Categoria</th><th style="text-align:center">Quantidade</th><th style="text-align:center">% do Total</th></tr></thead>
+    <tbody>${catRows || '<tr><td colspan="3" style="text-align:center;opacity:0.4;padding:20px">Nenhuma atividade registrada</td></tr>'}</tbody>
+  </table>
 </div>
+
 <div class="section">
   <div class="section-title">📅 Relatórios da Semana</div>
-  <table><thead><tr><th>Data</th><th>Turno</th><th>Status</th><th style="text-align:center">Atividades</th></tr></thead>
-  <tbody>${reportRows || '<tr><td colspan="4" style="text-align:center;opacity:0.5">Sem relatórios</td></tr>'}</tbody></table>
+  <table>
+    <thead><tr><th>Data</th><th>Turno</th><th>Status do NOC</th><th style="text-align:center">Atividades</th></tr></thead>
+    <tbody>${reportRows || '<tr><td colspan="4" style="text-align:center;opacity:0.4;padding:20px">Nenhum relatório nesta semana</td></tr>'}</tbody>
+  </table>
 </div>
+
 <div class="section ai-section">
   <div class="section-title">📋 Resumo Executivo da Semana</div>
   ${aiText}
 </div>
-<div class="footer">Gerado em ${new Date().toLocaleString('pt-BR')} — NOC Report System — DOCUMENTO INTERNO</div>
-<div class="no-print" style="text-align:center;margin-top:24px;">
-  <button class="print-btn" onclick="window.print()">🖨️ Salvar como PDF / Imprimir</button>
-</div>
-</body></html>`;
 
-            const w = window.open('', '_blank');
-            w.document.write(html);
-            w.document.close();
+<div class="footer">
+  Gerado em ${new Date().toLocaleString('pt-BR')} &nbsp;|&nbsp; NOC Report System &nbsp;|&nbsp; DOCUMENTO INTERNO
+</div>
+
+<div class="no-print">
+  <button class="print-btn" onclick="window.print()">🖨️ &nbsp;Salvar como PDF / Imprimir</button>
+</div>
+
+</body>
+</html>`;
+
+            // Usar Blob + link de download para evitar bloqueio de popup
+            const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+            const url  = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href   = url;
+            link.target = '_blank';
+            link.rel    = 'noopener';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            // Revogar URL após 60s
+            setTimeout(() => URL.revokeObjectURL(url), 60000);
 
         } catch (err) {
             console.error('Erro ao gerar PDF semanal:', err);
-            alert('Erro ao gerar PDF. Tente novamente.');
+            alert('Erro ao gerar o resumo semanal. Verifique o console (F12) para detalhes.');
         } finally {
-            btnExportWeeklyPdf.innerHTML = originalText;
-            btnExportWeeklyPdf.disabled = false;
+            if (btnExportWeeklyPdf) {
+                btnExportWeeklyPdf.innerHTML = originalText;
+                btnExportWeeklyPdf.disabled = false;
+            }
         }
     }
 
