@@ -1260,34 +1260,39 @@ document.addEventListener('DOMContentLoaded', () => {
     let weeklyReports       = [];
     let weeklyPieChart      = null;
 
-    // Abre modal
-    btnWeeklyReport.addEventListener('click', () => {
-        weeklyCurrentMonday = getMonday(new Date());
-        modalWeekly.style.display = 'flex';
-        loadWeeklyData();
-    });
+    // Verificar se os elementos existem antes de registrar listeners
+    if (!btnWeeklyReport || !modalWeekly) {
+        console.warn('[Resumo Semanal] Elementos não encontrados no DOM. Modal desabilitado.');
+    } else {
+        // Abre modal
+        btnWeeklyReport.addEventListener('click', () => {
+            weeklyCurrentMonday = getMonday(new Date());
+            modalWeekly.style.display = 'flex';
+            loadWeeklyData();
+        });
 
-    // Fecha modal
-    btnCloseWeekly.addEventListener('click', () => { modalWeekly.style.display = 'none'; });
-    modalWeekly.addEventListener('click', e => { if (e.target === modalWeekly) modalWeekly.style.display = 'none'; });
+        // Fecha modal
+        if (btnCloseWeekly) btnCloseWeekly.addEventListener('click', () => { modalWeekly.style.display = 'none'; });
+        modalWeekly.addEventListener('click', e => { if (e.target === modalWeekly) modalWeekly.style.display = 'none'; });
 
-    // Navegar semanas
-    btnWeekPrev.addEventListener('click', () => {
-        weeklyCurrentMonday = new Date(weeklyCurrentMonday);
-        weeklyCurrentMonday.setDate(weeklyCurrentMonday.getDate() - 7);
-        loadWeeklyData();
-    });
-    btnWeekNext.addEventListener('click', () => {
-        weeklyCurrentMonday = new Date(weeklyCurrentMonday);
-        weeklyCurrentMonday.setDate(weeklyCurrentMonday.getDate() + 7);
-        loadWeeklyData();
-    });
+        // Navegar semanas
+        if (btnWeekPrev) btnWeekPrev.addEventListener('click', () => {
+            weeklyCurrentMonday = new Date(weeklyCurrentMonday);
+            weeklyCurrentMonday.setDate(weeklyCurrentMonday.getDate() - 7);
+            loadWeeklyData();
+        });
+        if (btnWeekNext) btnWeekNext.addEventListener('click', () => {
+            weeklyCurrentMonday = new Date(weeklyCurrentMonday);
+            weeklyCurrentMonday.setDate(weeklyCurrentMonday.getDate() + 7);
+            loadWeeklyData();
+        });
 
-    // Regenerar IA
-    btnRegenerateAi.addEventListener('click', () => generateWeeklyAI(weeklyReports));
+        // Regenerar resumo
+        if (btnRegenerateAi) btnRegenerateAi.addEventListener('click', () => generateWeeklyAI(weeklyReports));
 
-    // Exportar PDF semanal
-    btnExportWeeklyPdf.addEventListener('click', exportWeeklyPDF);
+        // Exportar PDF semanal
+        if (btnExportWeeklyPdf) btnExportWeeklyPdf.addEventListener('click', exportWeeklyPDF);
+    }
 
     function getMonday(date) {
         const d = new Date(date);
