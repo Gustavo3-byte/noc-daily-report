@@ -369,19 +369,107 @@ document.addEventListener('DOMContentLoaded', () => {
                     </span>
                 </td>
                 <td class="no-print">
-                    <button class="btn-icon-danger btn-delete-act" title="Excluir Atividade">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>
+                    <div style="display:flex;gap:6px;align-items:center;">
+                        <button class="btn-icon-edit btn-edit-act" title="Editar Atividade">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                        <button class="btn-icon-danger btn-delete-act" title="Excluir Atividade">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
                 </td>
             `;
 
-            // Event listener para o botão de deletar desta linha
+            // Linha de edição inline (oculta por padrão)
+            const trEdit = document.createElement('tr');
+            trEdit.className = 'tr-edit-row hidden';
+            trEdit.setAttribute('data-edit-id', act.id);
+            trEdit.innerHTML = `
+                <td colspan="5" style="padding:10px 14px;background:rgba(0,242,254,0.04);border-bottom:1px solid rgba(0,242,254,0.15);">
+                    <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+                        <div style="flex:2;min-width:180px;">
+                            <label style="font-size:10px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:4px;">Descrição</label>
+                            <input class="edit-desc" type="text" value="${escapeHTML(act.description)}"
+                                style="width:100%;background:#0a1628;border:1px solid rgba(0,242,254,0.3);border-radius:6px;padding:7px 10px;color:#fff;font-size:13px;font-family:inherit;outline:none;">
+                        </div>
+                        <div style="flex:0 0 90px;">
+                            <label style="font-size:10px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:4px;">Horário</label>
+                            <input class="edit-time" type="time" value="${act.time}"
+                                style="width:100%;background:#0a1628;border:1px solid rgba(0,242,254,0.3);border-radius:6px;padding:7px 8px;color:#fff;font-size:13px;font-family:inherit;outline:none;">
+                        </div>
+                        <div style="flex:0 0 140px;">
+                            <label style="font-size:10px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:4px;">Categoria</label>
+                            <select class="edit-category"
+                                style="width:100%;background:#0a1628;border:1px solid rgba(0,242,254,0.3);border-radius:6px;padding:7px 8px;color:#fff;font-size:13px;font-family:inherit;outline:none;cursor:pointer;">
+                                <option value="monitoramento" ${act.category==='monitoramento'?'selected':''}>Monitoramento</option>
+                                <option value="suporte" ${act.category==='suporte'?'selected':''}>Suporte</option>
+                                <option value="n3" ${act.category==='n3'?'selected':''}>N3</option>
+                                <option value="rotina" ${act.category==='rotina'?'selected':''}>Rotina</option>
+                                <option value="flow" ${act.category==='flow'?'selected':''}>Flow</option>
+                            </select>
+                        </div>
+                        <div style="flex:0 0 140px;">
+                            <label style="font-size:10px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:4px;">Status</label>
+                            <select class="edit-status"
+                                style="width:100%;background:#0a1628;border:1px solid rgba(0,242,254,0.3);border-radius:6px;padding:7px 8px;color:#fff;font-size:13px;font-family:inherit;outline:none;cursor:pointer;">
+                                <option value="concluido" ${act.status==='concluido'?'selected':''}>Concluído</option>
+                                <option value="em-andamento" ${act.status==='em-andamento'?'selected':''}>Em Andamento</option>
+                                <option value="pendente" ${act.status==='pendente'?'selected':''}>Pendente</option>
+                            </select>
+                        </div>
+                        <div style="display:flex;gap:6px;padding-bottom:1px;">
+                            <button class="btn-save-edit btn-primary" style="padding:7px 14px;font-size:12px;white-space:nowrap;">
+                                <i class="fa-solid fa-check"></i> Salvar
+                            </button>
+                            <button class="btn-cancel-edit btn-secondary" style="padding:7px 14px;font-size:12px;white-space:nowrap;">
+                                <i class="fa-solid fa-xmark"></i> Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </td>
+            `;
+
+            // Event listener — editar
+            tr.querySelector('.btn-edit-act').addEventListener('click', () => {
+                // Fechar outras linhas de edição abertas
+                document.querySelectorAll('.tr-edit-row').forEach(r => r.classList.add('hidden'));
+                trEdit.classList.remove('hidden');
+                trEdit.querySelector('.edit-desc').focus();
+            });
+
+            // Event listener — deletar
             tr.querySelector('.btn-delete-act').addEventListener('click', () => {
                 deleteActivity(act.id);
             });
 
+            // Event listener — salvar edição
+            trEdit.querySelector('.btn-save-edit').addEventListener('click', () => {
+                const newDesc = trEdit.querySelector('.edit-desc').value.trim();
+                const newTime = trEdit.querySelector('.edit-time').value;
+                const newCat  = trEdit.querySelector('.edit-category').value;
+                const newSts  = trEdit.querySelector('.edit-status').value;
+                if (!newDesc) { trEdit.querySelector('.edit-desc').focus(); return; }
+                editActivity(act.id, { description: newDesc, time: newTime, category: newCat, status: newSts });
+            });
+
+            // Event listener — cancelar edição
+            trEdit.querySelector('.btn-cancel-edit').addEventListener('click', () => {
+                trEdit.classList.add('hidden');
+            });
+
             tbodyActivitiesRows.appendChild(tr);
+            tbodyActivitiesRows.appendChild(trEdit);
         });
+    }
+
+    function editActivity(id, changes) {
+        const idx = appState.activities.findIndex(a => a.id === id);
+        if (idx === -1) return;
+        appState.activities[idx] = { ...appState.activities[idx], ...changes };
+        appState.activities.sort((a, b) => a.time.localeCompare(b.time));
+        renderActivities();
+        updateDashboardCounters();
+        triggerAutoSave();
     }
 
     function updateDashboardCounters() {
@@ -1254,32 +1342,45 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnWeekNext        = document.getElementById('btn-week-next');
     const weeklyRangeLabel   = document.getElementById('weekly-range-label');
     const btnExportWeeklyPdf = document.getElementById('btn-export-weekly-pdf');
+    const btnRegenerateAi    = document.getElementById('btn-regenerate-ai');
 
     let weeklyCurrentMonday = getMonday(new Date());
     let weeklyReports       = [];
     let weeklyPieChart      = null;
 
-    // Registrar listeners do modal semanal
-    if (btnWeeklyReport) {
+    // Verificar se os elementos existem antes de registrar listeners
+    if (!btnWeeklyReport || !modalWeekly) {
+        console.warn('[Resumo Semanal] Elementos não encontrados no DOM. Modal desabilitado.');
+    } else {
+        // Abre modal
         btnWeeklyReport.addEventListener('click', () => {
             weeklyCurrentMonday = getMonday(new Date());
             modalWeekly.style.display = 'flex';
             loadWeeklyData();
         });
+
+        // Fecha modal
+        if (btnCloseWeekly) btnCloseWeekly.addEventListener('click', () => { modalWeekly.style.display = 'none'; });
+        modalWeekly.addEventListener('click', e => { if (e.target === modalWeekly) modalWeekly.style.display = 'none'; });
+
+        // Navegar semanas
+        if (btnWeekPrev) btnWeekPrev.addEventListener('click', () => {
+            weeklyCurrentMonday = new Date(weeklyCurrentMonday);
+            weeklyCurrentMonday.setDate(weeklyCurrentMonday.getDate() - 7);
+            loadWeeklyData();
+        });
+        if (btnWeekNext) btnWeekNext.addEventListener('click', () => {
+            weeklyCurrentMonday = new Date(weeklyCurrentMonday);
+            weeklyCurrentMonday.setDate(weeklyCurrentMonday.getDate() + 7);
+            loadWeeklyData();
+        });
+
+        // Regenerar resumo
+        if (btnRegenerateAi) btnRegenerateAi.addEventListener('click', () => generateWeeklyAI(weeklyReports));
+
+        // Exportar PDF semanal
+        if (btnExportWeeklyPdf) btnExportWeeklyPdf.addEventListener('click', exportWeeklyPDF);
     }
-    if (btnCloseWeekly) btnCloseWeekly.addEventListener('click', () => { modalWeekly.style.display = 'none'; });
-    if (modalWeekly) modalWeekly.addEventListener('click', e => { if (e.target === modalWeekly) modalWeekly.style.display = 'none'; });
-    if (btnWeekPrev) btnWeekPrev.addEventListener('click', () => {
-        weeklyCurrentMonday = new Date(weeklyCurrentMonday);
-        weeklyCurrentMonday.setDate(weeklyCurrentMonday.getDate() - 7);
-        loadWeeklyData();
-    });
-    if (btnWeekNext) btnWeekNext.addEventListener('click', () => {
-        weeklyCurrentMonday = new Date(weeklyCurrentMonday);
-        weeklyCurrentMonday.setDate(weeklyCurrentMonday.getDate() + 7);
-        loadWeeklyData();
-    });
-    if (btnExportWeeklyPdf) btnExportWeeklyPdf.addEventListener('click', exportWeeklyPDF);
 
     function getMonday(date) {
         const d = new Date(date);
@@ -1476,13 +1577,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function generateWeeklyAI(reports) {
-        const resultEl = document.getElementById('weekly-ai-result');
-        if (!resultEl) return;
+        const loadingEl = document.getElementById('weekly-ai-loading');
+        const resultEl  = document.getElementById('weekly-ai-result');
+        btnRegenerateAi.style.display = 'none';
+        loadingEl.classList.remove('hidden');
+        resultEl.classList.add('hidden');
         resultEl.innerHTML = '';
 
-
         if (reports.length === 0) {
-            resultEl.innerHTML = '<p style="color:rgba(255,255,255,0.4);text-align:center;padding:20px;">Nenhum dado encontrado para esta semana.</p>';
+            loadingEl.classList.add('hidden');
+            resultEl.classList.remove('hidden');
+            resultEl.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px;">Nenhum dado encontrado para esta semana.</p>';
+            btnRegenerateAi.style.display = 'block';
             return;
         }
 
@@ -1596,8 +1702,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Renderizar
+        loadingEl.classList.add('hidden');
         resultEl.classList.remove('hidden');
         resultEl.innerHTML = html;
+        btnRegenerateAi.style.display = 'block';
     }
 
     async function exportWeeklyPDF() {
