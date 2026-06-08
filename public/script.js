@@ -1500,6 +1500,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const categories = Object.keys(catCount).filter(k => catCount[k] > 0);
         const legend = document.getElementById('weekly-pie-legend');
+        if (!legend) return;
         legend.innerHTML = '';
 
         if (total === 0 || categories.length === 0) {
