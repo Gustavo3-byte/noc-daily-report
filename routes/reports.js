@@ -149,6 +149,53 @@ router.post('/', async (req, res) => {
 });
 
 /**
+ * PUT /api/reports/:id
+ * Atualiza um relatório específico pelo ID (deve pertencer ao usuário).
+ * Usado pelo frontend quando já tem um currentReportId carregado.
+ */
+router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { report_date, shift, overall_status, activities } = req.body;
+    const userId = req.session.userId;
+
+    if (!report_date) {
+      return res.status(400).json({ error: 'A data do relatório é obrigatória.' });
+    }
+
+    const result = await pool.query(
+      `UPDATE reports
+       SET report_date    = $1,
+           shift          = $2,
+           overall_status = $3,
+           activities     = $4,
+           updated_at     = NOW()
+       WHERE id = $5 AND user_id = $6
+       RETURNING id, report_date, shift, overall_status, activities, created_at, updated_at`,
+      [
+        report_date,
+        shift || null,
+        overall_status || 'normal',
+        JSON.stringify(activities || []),
+        id,
+        userId,
+      ]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Relatório não encontrado.' });
+    }
+
+    console.log(`📝 Relatório atualizado (PUT): ID ${id} por ${req.session.userName}`);
+    return res.json({ message: 'Relatório atualizado com sucesso.', report: result.rows[0] });
+
+  } catch (error) {
+    console.error('❌ Erro ao atualizar relatório (PUT):', error.message);
+    return res.status(500).json({ error: 'Erro ao atualizar relatório.' });
+  }
+});
+
+/**
  * DELETE /api/reports/:id
  * Remove um relatório (deve pertencer ao usuário).
  */
