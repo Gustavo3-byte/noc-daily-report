@@ -16,10 +16,10 @@
     <!-- Folha de Estilos -->
     <link rel="stylesheet" href="style.css">
     <!-- jsPDF + html2canvas standalone (para exportação direta) -->
-    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <!-- html2pdf.js CDN -->
-    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- html2pdf.js CDN (Versão estável e sem restrição de integridade) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
 </head>
 <body>
     <div class="background-overlay"></div>
@@ -324,7 +324,7 @@
                 </div>
             </div>
 
-            <!-- Gráfico + Análise -->
+            <!-- Gráfico + IA -->
             <div class="weekly-main-grid">
                 <!-- Gráfico pizza -->
                 <div class="weekly-chart-box glass-panel">
@@ -335,7 +335,7 @@
                     <div id="weekly-pie-legend" class="weekly-legend"></div>
                 </div>
 
-                <!-- Análise da Semana -->
+                <!-- Resumo IA -->
                 <div class="weekly-ai-box glass-panel">
                     <div class="weekly-section-title"><i class="fa-solid fa-clipboard-list"></i> Resumo Executivo da Semana</div>
                     <div id="weekly-ai-content" class="weekly-ai-text">
@@ -345,7 +345,7 @@
                         </div>
                         <div id="weekly-ai-result" class="hidden"></div>
                     </div>
-                </div>
+                    </div>
             </div>
 
             <!-- Tabela de relatórios da semana -->
@@ -366,7 +366,7 @@
         </div>
     </div>
 
-    <script defer src="auth.js"></script>
-    <script defer src="script.js"></script>
+    <script src="auth.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
