@@ -503,6 +503,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- AUTO-SAVE (API COM DEBOUNCE) ---
     let autoSaveTimeout;
+    let isSaving = false;
+    let pendingSave = false;
 
     function triggerAutoSave() {
         // Efeito Visual de "Salvando..."
@@ -511,53 +513,69 @@ document.addEventListener('DOMContentLoaded', () => {
         textAutosaveStatus.textContent = 'Salvando alterações...';
 
         clearTimeout(autoSaveTimeout);
-        autoSaveTimeout = setTimeout(async () => {
-            try {
-                const payload = {
-                    report_date:    appState.reportDate,
-                    shift:          appState.shift,
-                    overall_status: appState.overallStatus,
-                    activities:     appState.activities
-                };
+        autoSaveTimeout = setTimeout(performSave, 800);
+    }
 
-                // Se já temos um ID de relatório carregado → atualizar via PUT
-                // Senão → criar/upsert via POST (por data+turno)
-                const hasId = !!appState.currentReportId;
-                const url    = hasId ? `/api/reports/${appState.currentReportId}` : '/api/reports';
-                const method = hasId ? 'PUT' : 'POST';
+    async function performSave() {
+        // Se já está salvando, marcar para salvar novamente quando terminar
+        if (isSaving) {
+            pendingSave = true;
+            return;
+        }
+        isSaving = true;
 
-                const res = await fetch(url, {
-                    method,
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'same-origin',
-                    body: JSON.stringify(payload)
-                });
+        try {
+            const payload = {
+                report_date:    appState.reportDate,
+                shift:          appState.shift,
+                overall_status: appState.overallStatus,
+                activities:     appState.activities
+            };
 
-                if (res.ok) {
-                    const data = await res.json();
-                    // Guardar o ID retornado (para o caso de POST que criou novo)
-                    if (data.report && data.report.id) {
-                        appState.currentReportId = data.report.id;
-                    }
+            // Se já temos um ID → atualizar via PUT
+            // Senão → criar/upsert via POST (por data+turno)
+            const hasId = !!appState.currentReportId;
+            const url    = hasId ? `/api/reports/${appState.currentReportId}` : '/api/reports';
+            const method = hasId ? 'PUT' : 'POST';
 
-                    const timeStr = new Date().toLocaleTimeString('pt-BR');
-                    autosaveDot.style.background = 'var(--color-success)';
-                    autosaveDot.style.boxShadow = '0 0 8px var(--color-success)';
-                    textAutosaveStatus.textContent = `Salvo no servidor em ${timeStr}`;
+            const res = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify(payload)
+            });
 
-                    // Atualizar a lista de relatórios
-                    loadMyReports();
-                } else {
-                    const errData = await res.json().catch(() => ({}));
-                    throw new Error(errData.error || `HTTP ${res.status}`);
+            if (res.ok) {
+                const data = await res.json();
+                // Guardar o ID retornado (para o caso de POST que criou novo)
+                if (data.report && data.report.id) {
+                    appState.currentReportId = data.report.id;
                 }
-            } catch (err) {
-                console.error('Erro ao salvar relatório:', err);
-                autosaveDot.style.background = 'var(--color-danger)';
-                autosaveDot.style.boxShadow = '0 0 8px var(--color-danger)';
-                textAutosaveStatus.textContent = `Erro ao salvar: ${err.message}`;
+
+                const timeStr = new Date().toLocaleTimeString('pt-BR');
+                autosaveDot.style.background = 'var(--color-success)';
+                autosaveDot.style.boxShadow = '0 0 8px var(--color-success)';
+                textAutosaveStatus.textContent = `Salvo às ${timeStr}`;
+
+                // Atualizar a lista de relatórios
+                loadMyReports();
+            } else {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || `HTTP ${res.status}`);
             }
-        }, 800);
+        } catch (err) {
+            console.error('Erro ao salvar relatório:', err);
+            autosaveDot.style.background = 'var(--color-danger)';
+            autosaveDot.style.boxShadow = '0 0 8px var(--color-danger)';
+            textAutosaveStatus.textContent = `Erro ao salvar: ${err.message}`;
+        } finally {
+            isSaving = false;
+            // Se houve mudanças durante o save, salvar novamente
+            if (pendingSave) {
+                pendingSave = false;
+                performSave();
+            }
+        }
     }
 
     // --- MEUS RELATÓRIOS ---
