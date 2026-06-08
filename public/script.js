@@ -2,7 +2,7 @@
    SCRIPT PRINCIPAL - NOC DAILY REPORT (JS PURO — MULTI-USER / API)
    ========================================================================== */
 
-function initApp() {
+document.addEventListener('DOMContentLoaded', () => {
     // --- ESTADO DO APLICATIVO ---
     let appState = {
         user: null,
@@ -1259,37 +1259,27 @@ function initApp() {
     let weeklyReports       = [];
     let weeklyPieChart      = null;
 
-    // Verificar se os elementos existem antes de registrar listeners
-    if (!btnWeeklyReport || !modalWeekly) {
-        console.warn('[Resumo Semanal] Elementos não encontrados no DOM. Modal desabilitado.');
-    } else {
-        // Abre modal
+    // Registrar listeners do modal semanal
+    if (btnWeeklyReport) {
         btnWeeklyReport.addEventListener('click', () => {
             weeklyCurrentMonday = getMonday(new Date());
             modalWeekly.style.display = 'flex';
             loadWeeklyData();
         });
-
-        // Fecha modal
-        if (btnCloseWeekly) btnCloseWeekly.addEventListener('click', () => { modalWeekly.style.display = 'none'; });
-        modalWeekly.addEventListener('click', e => { if (e.target === modalWeekly) modalWeekly.style.display = 'none'; });
-
-        // Navegar semanas
-        if (btnWeekPrev) btnWeekPrev.addEventListener('click', () => {
-            weeklyCurrentMonday = new Date(weeklyCurrentMonday);
-            weeklyCurrentMonday.setDate(weeklyCurrentMonday.getDate() - 7);
-            loadWeeklyData();
-        });
-        if (btnWeekNext) btnWeekNext.addEventListener('click', () => {
-            weeklyCurrentMonday = new Date(weeklyCurrentMonday);
-            weeklyCurrentMonday.setDate(weeklyCurrentMonday.getDate() + 7);
-            loadWeeklyData();
-        });
-
-        // Regenerar resumo
-            // Exportar PDF semanal
-        if (btnExportWeeklyPdf) btnExportWeeklyPdf.addEventListener('click', exportWeeklyPDF);
     }
+    if (btnCloseWeekly) btnCloseWeekly.addEventListener('click', () => { modalWeekly.style.display = 'none'; });
+    if (modalWeekly) modalWeekly.addEventListener('click', e => { if (e.target === modalWeekly) modalWeekly.style.display = 'none'; });
+    if (btnWeekPrev) btnWeekPrev.addEventListener('click', () => {
+        weeklyCurrentMonday = new Date(weeklyCurrentMonday);
+        weeklyCurrentMonday.setDate(weeklyCurrentMonday.getDate() - 7);
+        loadWeeklyData();
+    });
+    if (btnWeekNext) btnWeekNext.addEventListener('click', () => {
+        weeklyCurrentMonday = new Date(weeklyCurrentMonday);
+        weeklyCurrentMonday.setDate(weeklyCurrentMonday.getDate() + 7);
+        loadWeeklyData();
+    });
+    if (btnExportWeeklyPdf) btnExportWeeklyPdf.addEventListener('click', exportWeeklyPDF);
 
     function getMonday(date) {
         const d = new Date(date);
@@ -1331,6 +1321,7 @@ function initApp() {
             });
 
             renderWeeklyData(weeklyReports);
+            generateWeeklyAI(weeklyReports);
 
         } catch (err) {
             console.error('Erro ao carregar dados semanais:', err);
@@ -1484,12 +1475,14 @@ function initApp() {
         ctx.fillText('atividades', cx, cy + 14);
     }
 
-    function generateWeeklySummary(reports) {
+    function generateWeeklyAI(reports) {
         const resultEl = document.getElementById('weekly-ai-result');
+        if (!resultEl) return;
         resultEl.innerHTML = '';
 
+
         if (reports.length === 0) {
-            resultEl.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px;">Nenhum dado encontrado para esta semana.</p>';
+            resultEl.innerHTML = '<p style="color:rgba(255,255,255,0.4);text-align:center;padding:20px;">Nenhum dado encontrado para esta semana.</p>';
             return;
         }
 
@@ -1726,11 +1719,4 @@ function initApp() {
         }
     }
 
-}
-
-// Garante execução mesmo se DOMContentLoaded já disparou
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initApp);
-} else {
-    initApp();
-}
+});
